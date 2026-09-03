@@ -11,7 +11,18 @@ export interface CacheResult {
   created: boolean
 }
 
-export const CACHE_ROOT = path.join(os.homedir(), '.cache', 'ntx')
+export const CACHE_ROOT = path.join(homeDir(), '.cache', 'ntx')
+
+/**
+ * Directorio home del usuario.
+ * En Windows respeta %USERPROFILE% (C:\Users\usuario) → cache en C:\Users\usuario\.cache\ntx.
+ * En Linux/macOS respeta $HOME → ~/.cache/ntx.
+ */
+function homeDir(): string {
+  const env = process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME
+  if (env && env.length > 0) return path.resolve(env)
+  return os.homedir()
+}
 
 function shortHash(s: string): string {
   return createHash('sha256').update(s).digest('hex').slice(0, 16)

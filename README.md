@@ -45,14 +45,17 @@ Los caches de la **segunda ejecución** en adelante son instantáneos (npm ya la
 
 ## Cache y aislamiento
 
-Estructura del cache (`~/.cache/ntx`):
+Estructura del cache:
 
 ```
-~/.cache/ntx/
-  <workspaceHash>/      # aísla por proyecto (hash del dir del script)
-    <depsHash>/         # aísla por conjunto de deps
+~/.cache/ntx/                 # en Windows: C:\Users\usuario\.cache\ntx
+  <workspaceHash>/            # aísla por proyecto (hash del dir del script)
+    <depsHash>/               # aísla por conjunto de deps
       node_modules/
 ```
+
+La ruta del home se obtiene de `%USERPROFILE%` (Windows) o `$HOME` (Linux/macOS),
+por lo que siempre acaba en `~/.cache/ntx` independientemente del SO.
 
 Cada proyecto (workspace) tiene sus propias deps. Dos proyectos que usen deps distintas
 **no se mezclan**. El mismo proyecto con los mismos `--with` reutiliza el cache.
