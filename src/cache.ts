@@ -1,27 +1,14 @@
 import { createHash } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import os from 'node:os'
 import { spawnSync } from 'node:child_process'
+import { CACHE_ROOT } from './config.js'
 
 export interface CacheResult {
   workspaceCacheDir: string
   cacheDir: string
   nodeModulesPath: string
   created: boolean
-}
-
-export const CACHE_ROOT = path.join(homeDir(), '.cache', 'ntx')
-
-/**
- * Directorio home del usuario.
- * En Windows respeta %USERPROFILE% (C:\Users\usuario) → cache en C:\Users\usuario\.cache\ntx.
- * En Linux/macOS respeta $HOME → ~/.cache/ntx.
- */
-function homeDir(): string {
-  const env = process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME
-  if (env && env.length > 0) return path.resolve(env)
-  return os.homedir()
 }
 
 function shortHash(s: string): string {
