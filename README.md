@@ -20,18 +20,74 @@ ntx run --with chalk@^4 script.js arg1
 ntx run --with axios diario.ts hello world
 ```
 
+## Ejemplos probados
+
+**API Express** (`examples/express-api.ts`):
+```ts
+import express from 'express'
+const app = express()
+app.get('/', (_req, res) => res.json({ hello: 'world', via: 'ntx' }))
+app.listen(3000, () => console.log('Express en http://localhost:3000'))
+```
+```bash
+ntx run --with express express-api.ts
+```
+
+**Scrape web con axios + jsdom contra example.com**:
+```ts
+import { JSDOM } from 'jsdom'
+;(async () => {
+  const { default: axios } = await import('axios')
+  const { data } = await axios.get('https://example.com')
+  console.log('h1:', new JSDOM(data).window.document.querySelector('h1')?.textContent)
+})()
+```
+```bash
+ntx run --with axios --with jsdom scrape.ts
+```
+
+**Mismo scraping, inline** (sin archivo):
+```bash
+ntx run --with axios --with jsdom -c "(async () => {
+  const { default: axios } = await import('axios')
+  const { JSDOM } = await import('jsdom')
+  const { data } = await axios.get('https://example.com')
+  console.log('h1:', new JSDOM(data).window.document.querySelector('h1')?.textContent)
+})()"
+```
+
+> **Nota inline:** `tsx -e` transpila a CJS, así que el **top-level `await` falla**. Envuelve el
+> código async en `(async () => { ... })()`.
+
+## Gestión del cache
+
+```bash
+ntx cache stats            # muestra workspaces + tamaño del cache
+ntx cache clean            # pide confirmación antes de borrar
+ntx cache clean --force    # borra sin confirmar
+```
+
+## Dónde **NO** aplica ntx
+
+`ntx` resuelve **scripts con deps efímeras**. No aplica a frameworks de **build/proyecto
+completo**, que necesitan su propio scaffolding y arbol de dependencias:
+
+- **Astro** — framework de build (`.astro` files, `astro.config`). Se monta con `npm create astro`.
+  Aunque `import 'astro'` exponga `build/dev/preview`, necesita estructura de proyecto, no un script suelto.
+- **Vite** — bundler con su propio `vite.config` y árbol de deps. Se usa con `npm create vite`.
+- **Angular** — CLI con scaffolding (`ng new`) y toolchain propia. No es una dep importable en scripts.
+- Otros frameworks/CLI de build (Next, Nuxt, Remix, Vue CLI...).
+
+Para esos usa el toolkit oficial (`npm create <x>`, `npx create-<x>@latest`). `ntx` brilla para
+**utilities à la carte**: un script corto, un scraper, una API de prueba, o replicar un snippet con
+deps sin contaminar tu proyecto.
+
 ## Instalación
 
 ```bash
 npm install
 npm run build          # tsup → dist/ntx.js
-npm link               # opcional: exponer `ntx` globalmente
-```
-
-Con `npm link`, `ntx` queda en el PATH:
-
-```bash
-ntx run --with jsdom -c "import { JSDOM } from 'jsdom'; console.log(typeof JSDOM)"
+npm link               # opcional: exponer `ntx` globalmente (queda en PATH)
 ```
 
 ## Cómo funciona
