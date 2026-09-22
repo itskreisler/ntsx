@@ -51,7 +51,7 @@ export async function cleanCache(force: boolean): Promise<{ cleared: boolean; si
     force ||
     (await promptConfirm(`Delete cache ${CACHE_ROOT} (${fmtBytes(sizeFreed)})? [y/N] `))
 
-  if (!confirmed) return { cleared: false, sizeFreed: 0 }
+  if (!confirmed) return { cleared: false, sizeFreed }
 
   await fs.rm(CACHE_ROOT, { recursive: true, force: true })
   return { cleared: true, sizeFreed }

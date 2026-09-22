@@ -1,11 +1,26 @@
 {
-  "name": "ntx",
+  "name": "ntsx",
   "version": "0.1.0",
   "description": "Run Node/TS scripts with ephemeral dependencies (uv-style --with) via npm cache + symlink",
   "type": "module",
   "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "cli",
+    "run",
+    "typescript",
+    "tsx",
+    "node",
+    "npx",
+    "ephemeral",
+    "dependencies",
+    "uv",
+    "script-runner"
+  ],
   "bin": {
-    "ntx": "dist/ntx.js"
+    "ntsx": "dist/ntsx.js"
   },
   "engines": {
     "node": ">=18"
@@ -13,7 +28,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/index.ts -- --help",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test test/cli.test.mjs",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "commander": "^15.0.0",

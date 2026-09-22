@@ -12,4 +12,4 @@ export function homeDir(): string {
   return os.homedir()
 }
 
-export const CACHE_ROOT = path.join(homeDir(), '.cache', 'ntx')
+export const CACHE_ROOT = path.join(homeDir(), '.cache', 'ntsx')

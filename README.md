@@ -1,23 +1,24 @@
-# ntx
+# ntsx
 
 Ejecuta scripts de Node/TypeScript con **dependencias efímeras**, estilo `uv --with`.
-Sin tocar la instalación global, sin corromper el `package.json` del proyecto: las deps
-se bajan a un cache aislado y se enlazan mediante un symlink de `node_modules`.
+Sin tocar la instalación global, sin corromper el `package.json` ni el `node_modules` del
+proyecto (el real se restaura al terminar): las deps se bajan a un cache aislado y se
+enlazan mediante un symlink temporal de `node_modules`.
 
 ## Uso
 
 ```bash
 # Con un archivo .js/.ts
-ntx run --with axios --with jsdom script.ts
+ntsx run --with axios --with jsdom script.ts
 
 # Con código inline (importa algo que NO tienes instalado)
-ntx run --with jsdom -c "import { JSDOM } from 'jsdom'; console.log(typeof JSDOM)"
+ntsx run --with jsdom -e "import { JSDOM } from 'jsdom'; console.log(typeof JSDOM)"
 
 # Con versiones
-ntx run --with chalk@^4 script.js arg1
+ntsx run --with chalk@^4 script.js arg1
 
 # Pasando argumentos al script
-ntx run --with axios diario.ts hello world
+ntsx run --with axios diario.ts hello world
 ```
 
 ## Ejemplos probados
@@ -26,11 +27,11 @@ ntx run --with axios diario.ts hello world
 ```ts
 import express from 'express'
 const app = express()
-app.get('/', (_req, res) => res.json({ hello: 'world', via: 'ntx' }))
+app.get('/', (_req, res) => res.json({ hello: 'world', via: 'ntsx' }))
 app.listen(3000, () => console.log('Express en http://localhost:3000'))
 ```
 ```bash
-ntx run --with express express-api.ts
+ntsx run --with express express-api.ts
 ```
 
 **Scrape web con axios + jsdom contra example.com**:
@@ -43,12 +44,12 @@ import { JSDOM } from 'jsdom'
 })()
 ```
 ```bash
-ntx run --with axios --with jsdom scrape.ts
+ntsx run --with axios --with jsdom scrape.ts
 ```
 
 **Mismo scraping, inline** (sin archivo):
 ```bash
-ntx run --with axios --with jsdom -c "(async () => {
+ntsx run --with axios --with jsdom -e "(async () => {
   const { default: axios } = await import('axios')
   const { JSDOM } = await import('jsdom')
   const { data } = await axios.get('https://example.com')
@@ -56,20 +57,21 @@ ntx run --with axios --with jsdom -c "(async () => {
 })()"
 ```
 
-> **Nota inline:** `tsx -e` transpila a CJS, así que el **top-level `await` falla**. Envuelve el
-> código async en `(async () => { ... })()`.
+> **Nota inline:** con `tsx` (default del eval) transpila a CJS, así que el **top-level `await`
+> falla**. Envuelve el código async en `(async () => { ... })()`, o usa `--eval-runtime node`
+> (en Node ≥22.7 el eval plano sí soporta top-level `await`).
 
 ## Gestión del cache
 
 ```bash
-ntx cache stats            # muestra workspaces + tamaño del cache
-ntx cache clean            # pide confirmación antes de borrar
-ntx cache clean --force    # borra sin confirmar
+ntsx cache stats            # muestra workspaces + tamaño del cache
+ntsx cache clean            # pide confirmación antes de borrar
+ntsx cache clean --force    # borra sin confirmar
 ```
 
-## Dónde **NO** aplica ntx
+## Dónde **NO** aplica ntsx
 
-`ntx` resuelve **scripts con deps efímeras**. No aplica a frameworks de **build/proyecto
+`ntsx` resuelve **scripts con deps efímeras**. No aplica a frameworks de **build/proyecto
 completo**, que necesitan su propio scaffolding y arbol de dependencias:
 
 - **Astro** — framework de build (`.astro` files, `astro.config`). Se monta con `npm create astro`.
@@ -78,7 +80,7 @@ completo**, que necesitan su propio scaffolding y arbol de dependencias:
 - **Angular** — CLI con scaffolding (`ng new`) y toolchain propia. No es una dep importable en scripts.
 - Otros frameworks/CLI de build (Next, Nuxt, Remix, Vue CLI...).
 
-Para esos usa el toolkit oficial (`npm create <x>`, `npx create-<x>@latest`). `ntx` brilla para
+Para esos usa el toolkit oficial (`npm create <x>`, `npx create-<x>@latest`). `ntsx` brilla para
 **utilities à la carte**: un script corto, un scraper, una API de prueba, o replicar un snippet con
 deps sin contaminar tu proyecto.
 
@@ -86,8 +88,8 @@ deps sin contaminar tu proyecto.
 
 ```bash
 npm install
-npm run build          # tsup → dist/ntx.js
-npm link               # opcional: exponer `ntx` globalmente (queda en PATH)
+npm run build          # tsup → dist/ntsx.js
+npm link               # opcional: exponer `ntsx` globalmente (queda en PATH)
 ```
 
 ## Cómo funciona
@@ -97,6 +99,10 @@ npm link               # opcional: exponer `ntx` globalmente (queda en PATH)
 3. Se crea un symlink `node_modules` → cache en el directorio del script.
 4. Ejecuta con `tsx` (para `.ts`/eval) o `node` (para `.js`), pasando los args restantes.
 
+> **Integridad del proyecto:** si en el directorio del script ya existe un `node_modules`
+> real, se aparta temporalmente (`.ntsx-<ts>.bak`), se crea el symlink a las deps efímeras
+> y al terminar el script se restaura el original. Nunca se destruye tu `node_modules`.
+
 Los caches de la **segunda ejecución** en adelante son instantáneos (npm ya las tiene).
 
 ## Cache y aislamiento
@@ -104,36 +110,57 @@ Los caches de la **segunda ejecución** en adelante son instantáneos (npm ya la
 Estructura del cache:
 
 ```
-~/.cache/ntx/                 # en Windows: C:\Users\usuario\.cache\ntx
+~/.cache/ntsx/                 # en Windows: C:\Users\usuario\.cache\ntsx
   <workspaceHash>/            # aísla por proyecto (hash del dir del script)
     <depsHash>/               # aísla por conjunto de deps
       node_modules/
 ```
 
 La ruta del home se obtiene de `%USERPROFILE%` (Windows) o `$HOME` (Linux/macOS),
-por lo que siempre acaba en `~/.cache/ntx` independientemente del SO.
+por lo que siempre acaba en `~/.cache/ntsx` independientemente del SO.
 
 Cada proyecto (workspace) tiene sus propias deps. Dos proyectos que usen deps distintas
 **no se mezclan**. El mismo proyecto con los mismos `--with` reutiliza el cache.
 
-Para limpiar: `rm -rf ~/.cache/ntx`.
+Para limpiar: `rm -rf ~/.cache/ntsx`.
 
 ## Opciones
 
 | Flag | Descripción |
 |------|-------------|
 | `-w, --with <pkg>` | Dep efímera (`pkg`, `pkg@version`, `@scope/pkg`, `@scope/pkg@version`). Repetible |
-| `-c, --eval <code>` | Ejecuta código inline (tipo `node -e`) |
-| `-q, --quiet` | Silencia salida extra de ntx |
+| `-e, --eval <code>` | Ejecuta código inline (igual que `node -e`/`tsx -e`) |
+| `--eval-runtime <tsx\|node>` | Runner del eval (default: `tsx`) |
+| `--tsx-args <flags>` | Flags que van a `tsx` antes del script (`.ts`/`.tsx` y eval). Repetible |
+| `--node-args <flags>` | Flags que van a `node` antes del script (`.js`/`.mjs`). Repetible |
+| `--npm-args <flags>` | Flags que van al `npm install` del caché. Repetible |
+| `-q, --quiet` | Silencia la salida de `npm install` |
+| `-d, --debug` | Muestra el flujo interno: rutas del caché, comando `npm install`, symlink, comando del runner y restore |
 | `--node <version>` | Pin de versión de Node (**reservado**, para una versión futura) |
 | `-h, --help` | Ayuda |
+
+## Orden de los flags (igual que tsx)
+
+```
+ntsx run [flags del runtime] ./file.ts [flags y args del script]
+```
+
+- Los flags del **runner** (`--tsx-args`, `--node-args`, `--npm-args`) van **antes del script** y se reenvían a su CLI interno correspondiente.
+- Todo lo que vaya **después del script** se pasa **tal cual al script** (gracias a `passThroughOptions`), aunque parezca un flag de ntsx. Ejemplo:
+
+```bash
+ntsx run --tsx-args "--tsconfig=tsconfig.custom.json" src/main.ts
+ntsx run ./app.ts --verbose --with foo    # --verbose --with foo → del script, no de ntsx
+ntsx run --npm-args "--registry=https://registry.npmjs.org" -e "console.log('ok')"
+ntsx run --eval-runtime node -e "await Promise.resolve()"   # eval plano con node nativo
+```
 
 ## Requsitos
 
 - Node.js ≥ 18
-- `tsx` disponible (se usa para `.ts`/eval); si no está, ntx hace fallback a `npx -y tsx`
+- `tsx` disponible (se usa para `.ts`/eval); si no está, ntsx hace fallback a `npx -y tsx`
 
 ## Proyecto
 
 - TypeScript (última estable) + Commander (parseo de CLI) + zod (validación de args)
-- Build con `tsup` → `dist/ntx.js` (single file, shebang incluido)
+- Build con `tsup` → `dist/ntsx.js` (single file, shebang incluido)
