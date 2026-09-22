@@ -127,7 +127,7 @@ export async function run(opts: RunOptions): Promise<number> {
       const runnerFlags = splitArgs(parsed.nodeArgs)
       cmd = process.execPath
       args = isEval
-        ? [...runnerFlags, '-e', parsed.evalCode as string, ...parsed.scriptArgs]
+        ? [...runnerFlags, '--input-type=module', '-e', parsed.evalCode as string, ...parsed.scriptArgs]
         : [...runnerFlags, scriptPath as string, ...parsed.scriptArgs]
     }
 
