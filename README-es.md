@@ -20,7 +20,7 @@ ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hola mundo
   <b>tsx</b> ·
   <b>npx</b> ·
   <b>uv --with</b> ·
-  <b>Node ≥ 18</b>
+  <b>Node ≥ 22</b>
 </p>
 
 </div>
@@ -173,7 +173,7 @@ npm run build               # tsup → dist/ntsx.js (single-file, shebang)
 npm link                    # opcional: `ntsx` en tu PATH
 ```
 
-**Requisitos:** Node ≥ 18 · `tsx` (si no está, `npx -y tsx` de fallback).
+**Requisitos:** Node ≥ 22 · `tsx` (si no está, `npx -y tsx` de fallback).
 
 ## Stack
 
