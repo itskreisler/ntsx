@@ -45,7 +45,7 @@ A snippet, a scraper, a throwaway API, a QR in your terminal... **without ever t
 ntsx run --with axios --with jsdom examples/scrape.ts
 
 # inline code, without creating a single file
-ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://ntsx.dev', {type:'terminal', small:true}).then(console.log)"
+ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://npmjs.com/package/@kreisler/ntsx', {type:'terminal', small:true}).then(console.log)"
 
 # pinned versions
 ntsx run --with chalk@^4 script.js arg1
@@ -183,7 +183,7 @@ npm link                    # optional: `ntsx` in your PATH
 
 - TypeScript + Commander (CLI) + zod (validation)
 - `tsup` → self-contained bundle (`commander`, `zod` included in `dist`)
-- Tests with `node:test` (20/20 ✅)
+- Tests with `node:test` (22/22 ✅)
 
 ---
 

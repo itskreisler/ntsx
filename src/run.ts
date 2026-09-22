@@ -60,16 +60,19 @@ function resolveScript(script: string): string {
   throw new Error(`Script not found: ${script}`)
 }
 
-/** Resuelve el binario en el PATH */
+/** Resuelve el binario en el PATH (en Windows prueba .cmd/.exe). */
 function which(bin: string): string | null {
   const pathEnv = process.env.PATH ?? ''
+  const candidates = process.platform === 'win32' ? [bin, `${bin}.cmd`, `${bin}.exe`] : [bin]
   for (const dir of pathEnv.split(path.delimiter)) {
     if (!dir) continue
-    try {
-      const full = path.join(dir, bin)
-      if (statSync(full).isFile()) return full
-    } catch {
-      // no encontrado, continúa
+    for (const candidate of candidates) {
+      try {
+        const full = path.join(dir, candidate)
+        if (statSync(full).isFile()) return full
+      } catch {
+        // no encontrado, continúa
+      }
     }
   }
   return null
@@ -138,7 +141,13 @@ export async function run(opts: RunOptions): Promise<number> {
 
     // spawn asíncrono: permite reaccionar a SIGINT/SIGTERM mientras el runner
     // (p. ej. un servidor) sigue vivo, reenviar la señal y restaurar node_modules.
-    const child = spawn(cmd, args, { stdio: 'inherit', env: process.env })
+    // En Windows un .cmd necesita shell (los bins de npm son .cmd).
+    const spawnOpts: { stdio: 'inherit'; env: NodeJS.ProcessEnv; shell?: boolean } = {
+      stdio: 'inherit',
+      env: process.env,
+    }
+    if (process.platform === 'win32' && /\.cmd$/i.test(cmd)) spawnOpts.shell = true
+    const child = spawn(cmd, args, spawnOpts)
     let spawnErrMsg: string | null = null
     const closed = new Promise<number | null>((resolve) => {
       child.on('close', (code) => resolve(code))

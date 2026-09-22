@@ -1,6 +1,6 @@
 {
   "name": "@kreisler/ntsx",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Run Node/TS scripts with ephemeral dependencies (uv-style --with) via npm cache + symlink",
   "type": "module",
   "license": "MIT",

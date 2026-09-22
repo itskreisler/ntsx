@@ -41,7 +41,7 @@ de tu proyecto. Como `uv --with`, pero para Node.
 ntsx run --with axios --with jsdom examples/scrape.ts
 
 # código inline, sin crear ni un archivo
-ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://ntsx.dev', {type:'terminal', small:true}).then(console.log)"
+ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://npmjs.com/package/@kreisler/ntsx', {type:'terminal', small:true}).then(console.log)"
 
 # con versiones
 ntsx run --with chalk@^4 script.js arg1
@@ -179,7 +179,7 @@ npm link                    # opcional: `ntsx` en tu PATH
 
 - TypeScript + Commander (CLI) + zod (validación)
 - `tsup` → bundle autosuficiente (`commander`, `zod` incluidos en `dist`)
-- Tests con `node:test` (20/20 ✅)
+- Tests con `node:test` (22/22 ✅)
 
 ---
 

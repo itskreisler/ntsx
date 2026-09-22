@@ -1,11 +1,14 @@
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync, symlinkSync, readlinkSync, rmSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync, symlinkSync, readlinkSync, rmSync, lstatSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
 const BIN = path.resolve('dist/ntsx.js')
+
+// HOME aislado: los tests NO tocan el ~/.cache del usuario real.
+const testHome = mkdtempSync(path.join(os.tmpdir(), 'ntsx-home-'))
 
 const sandboxes = []
 function sandbox() {
@@ -16,6 +19,7 @@ function sandbox() {
 
 after(() => {
   for (const dir of sandboxes) rmSync(dir, { recursive: true, force: true })
+  rmSync(testHome, { recursive: true, force: true })
 })
 
 function spawnCli(args, opts = {}) {
@@ -23,7 +27,31 @@ function spawnCli(args, opts = {}) {
     cwd: opts.cwd,
     encoding: 'utf8',
     input: opts.input,
-    env: { ...process.env },
+    env: { ...process.env, HOME: testHome },
+  })
+}
+
+function spawnCliAsync(args, opts = {}) {
+  return spawn(process.execPath, [BIN, ...args], {
+    cwd: opts.cwd,
+    env: { ...process.env, HOME: testHome },
+  })
+}
+
+/** Poll de una condición (con timeout); ideal para runs que instalan/asincronos. */
+function waitFor(fn, timeoutMs = 20000, stepMs = 100) {
+  const start = Date.now()
+  return new Promise((resolve, reject) => {
+    const tick = () => {
+      try {
+        if (fn()) return resolve(true)
+      } catch {
+        // condicion aún no alcanzable: reintenta
+      }
+      if (Date.now() - start > timeoutMs) return reject(new Error('timeout esperando condición'))
+      setTimeout(tick, stepMs)
+    }
+    tick()
   })
 }
 
@@ -183,6 +211,28 @@ test('--with respeta un node_modules que ya era symlink (sin EEXIST)', () => {
   symlinkSync('real-deps', linkPath, 'dir')
   runCliWithRetry(['run', '--with', 'left-pad', '-q', '-e', 'console.log("ok")'], { cwd: dir })
   assert.equal(readlinkSync(linkPath), 'real-deps', 'el symlink original debe restaurarse')
+})
+
+test('SIGTERM restaura node_modules (graceful shutdown, útil para pm2)', async () => {
+  const dir = sandbox()
+  mkdirSync(path.join(dir, 'node_modules'))
+  writeFileSync(path.join(dir, 'node_modules', 'marcador.txt'), 'soy-real\n')
+  const child = spawnCliAsync(['run', '--with', 'is-odd', '-q', '-e', 'await new Promise(() => {})'], { cwd: dir })
+  // espera a que el cache esté enlazado (symlink), señal de que el run arrancó
+  await waitFor(() => lstatSync(path.join(dir, 'node_modules')).isSymbolicLink())
+  child.kill('SIGTERM')
+  const code = await new Promise((resolve) => child.on('close', resolve))
+  assert.equal(code, 143, 'exit 143 = terminado por SIGTERM tras restaurar')
+  assert.match(readFileSync(path.join(dir, 'node_modules', 'marcador.txt'), 'utf8'), /soy-real/)
+  assert.deepEqual(readdirSync(dir).filter((f) => f.endsWith('.bak')), [])
+})
+
+test('symlink huerfano hacia el cache se autocura (crash previo)', () => {
+  const dir = sandbox()
+  const linkPath = path.join(dir, 'node_modules')
+  symlinkSync(path.join(testHome, '.cache', 'ntsx', 'ficticio-que-no-existe'), linkPath, 'dir')
+  runCliWithRetry(['run', '--with', 'left-pad', '-q', '-e', 'console.log("ok")'], { cwd: dir })
+  assert.ok(!existsSync(linkPath), 'el symlink huérfano se descarta (fresh): no debe quedar')
 })
 
 // ---------- cache (destructivo al final) ----------

@@ -32,9 +32,17 @@ export function depsHash(withList: string[]): string {
   return shortHash([...withList].sort().join('\u0000'))
 }
 
-/** Cache aisla por workspace (proyecto) y por conjunto de deps */
-export function cacheDirFor(workspaceDir: string, withList: string[]): string {
-  return path.join(CACHE_ROOT, workspaceHash(workspaceDir), depsHash(withList))
+/**
+ * Clave de caché: deps + flags de npm. Als args de install afectan el contenido
+ * (p. ej. `--registry=espejo` vs registry por defecto), deben particionar el caché.
+ */
+export function cacheKey(withList: string[], npmArgs: string[]): string {
+  return shortHash([depsHash(withList), ...npmArgs].join('\u0000'))
+}
+
+/** Cache aisla por workspace (proyecto) y por conjunto de deps + flags npm */
+export function cacheDirFor(workspaceDir: string, withList: string[], npmArgs: string[] = []): string {
+  return path.join(CACHE_ROOT, workspaceHash(workspaceDir), cacheKey(withList, npmArgs))
 }
 
 /** Prepara cache aislado por workspace + deps, y symlink hacia targetDir. */
@@ -45,7 +53,7 @@ export async function prepareCache(
 ): Promise<CacheResult> {
   const wsHash = workspaceHash(targetDir)
   const workspaceCacheDir = path.join(CACHE_ROOT, wsHash)
-  const cacheDir = path.join(workspaceCacheDir, depsHash(withList))
+  const cacheDir = path.join(workspaceCacheDir, cacheKey(withList, opts.npmArgs ?? []))
   const cacheNodeModules = path.join(cacheDir, 'node_modules')
 
   debugLog(opts.debug, `workspace cache: ${workspaceCacheDir}`)
