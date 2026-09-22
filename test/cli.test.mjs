@@ -1,15 +1,22 @@
-import { test } from 'node:test'
+import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync, symlinkSync, readlinkSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync, symlinkSync, readlinkSync, rmSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
 const BIN = path.resolve('dist/ntsx.js')
 
+const sandboxes = []
 function sandbox() {
-  return mkdtempSync(path.join(os.tmpdir(), 'ntsx-test-'))
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'ntsx-test-'))
+  sandboxes.push(dir)
+  return dir
 }
+
+after(() => {
+  for (const dir of sandboxes) rmSync(dir, { recursive: true, force: true })
+})
 
 function spawnCli(args, opts = {}) {
   return spawnSync(process.execPath, [BIN, ...args], {

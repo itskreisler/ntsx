@@ -1,166 +1,182 @@
-# ntsx
+<div align="center">
 
-Ejecuta scripts de Node/TypeScript con **dependencias efímeras**, estilo `uv --with`.
-Sin tocar la instalación global, sin corromper el `package.json` ni el `node_modules` del
-proyecto (el real se restaura al terminar): las deps se bajan a un cache aislado y se
-enlazan mediante un symlink temporal de `node_modules`.
+# ⚡ ntsx
 
-## Uso
+**Corre cualquier script de Node/TS con dependencias efímeras — sin `npm install`, sin contaminar tu proyecto.**
 
 ```bash
-# Con un archivo .js/.ts
-ntsx run --with axios --with jsdom script.ts
+ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hola mundo'))"
+```
 
-# Con código inline (importa algo que NO tienes instalado)
-ntsx run --with jsdom -e "import { JSDOM } from 'jsdom'; console.log(typeof JSDOM)"
+**Siembra, corre, restaura. Tu `node_modules` queda tal cual.**
+*Estilo `uv --with` para Node.js.*
 
-# Con versiones
+---
+
+<p>
+  <b>npm run</b> ·
+  <b>tsx</b> ·
+  <b>npx</b> ·
+  <b>uv --with</b> ·
+  <b>Node ≥ 18</b>
+</p>
+
+</div>
+
+---
+
+## ¿Qué es esto?
+
+`ntsx` ejecuta un script (`.js`, `.ts`, `.tsx`, o código inline con `-e`) y le da **dependencias
+efímeras**: las instala sobre la marcha en un caché aislado `~/.cache/ntsx`, las enlaza con un
+`node_modules` temporal, y **restaura tu `node_modules` real al terminar**.
+
+Un snippet, un scraper, una API de prueba, un QR en el terminal... **sin tocar el `package.json`**
+de tu proyecto. Como `uv --with`, pero para Node.
+
+```bash
+# script con deps que NO tienes instaladas
+ntsx run --with axios --with jsdom examples/scrape.ts
+
+# código inline, sin crear ni un archivo
+ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://ntsx.dev', {type:'terminal', small:true}).then(console.log)"
+
+# con versiones
 ntsx run --with chalk@^4 script.js arg1
 
-# Pasando argumentos al script
-ntsx run --with axios diario.ts hello world
+# pasando argumentos al script
+ntsx run --with axios diario.ts --fecha hoy
 ```
 
-## Ejemplos probados
+## ¿Por qué ntsx y no <del>npx/tsx/npm</del>?
 
-**API Express** (`examples/express-api.ts`):
-```ts
-import express from 'express'
-const app = express()
-app.get('/', (_req, res) => res.json({ hello: 'world', via: 'ntsx' }))
-app.listen(3000, () => console.log('Express en http://localhost:3000'))
-```
-```bash
-ntsx run --with express express-api.ts
-```
+| Lo que quieres hacer | npx | tsx | ntsx |
+|---|---|---|---|
+| Correr TS sin instalar nada | ❌ no transpila | ✅ | ✅ |
+| Usar una dep que no tienes instalada | ⚠️ `npx -p chalk` (feo) | ❌ hay que `npm i` | ✅ `--with chalk` |
+| Repetibles, con versiones | ⚠️ | ❌ | ✅ `--with @scope/pkg@^2` |
+| Sin tocar tu `package.json` | ✅ | ❌ | ✅ |
+| Sin romper tu `node_modules` | ❌ suele ensuciar | ⚠️ | ✅ (se restaura) |
+| Caché reutilizable entre corridas | ⚠️ | ❌ | ✅ `~/.cache/ntsx` |
 
-**Scrape web con axios + jsdom contra example.com**:
-```ts
-import { JSDOM } from 'jsdom'
-;(async () => {
-  const { default: axios } = await import('axios')
-  const { data } = await axios.get('https://example.com')
-  console.log('h1:', new JSDOM(data).window.document.querySelector('h1')?.textContent)
-})()
-```
-```bash
-ntsx run --with axios --with jsdom scrape.ts
-```
-
-**Mismo scraping, inline** (sin archivo):
-```bash
-ntsx run --with axios --with jsdom -e "(async () => {
-  const { default: axios } = await import('axios')
-  const { JSDOM } = await import('jsdom')
-  const { data } = await axios.get('https://example.com')
-  console.log('h1:', new JSDOM(data).window.document.querySelector('h1')?.textContent)
-})()"
-```
-
-> **Nota inline:** con `tsx` (default del eval) transpila a CJS, así que el **top-level `await`
-> falla**. Envuelve el código async en `(async () => { ... })()`, o usa `--eval-runtime node`
-> (en Node ≥22.7 el eval plano sí soporta top-level `await`).
-
-## Gestión del cache
+**Orden de los flags**: lo de **antes** del script es del runner, lo de **después** es del script
+(igual que tsx):
 
 ```bash
-ntsx cache stats            # muestra workspaces + tamaño del cache
-ntsx cache clean            # pide confirmación antes de borrar
-ntsx cache clean --force    # borra sin confirmar
+ntsx run --tsx-args "--tsconfig=tsconfig.custom.json" src/main.ts --verbose
+#                       ↑ flags del runner                    ↑ flags del script
 ```
 
-## Dónde **NO** aplica ntsx
-
-`ntsx` resuelve **scripts con deps efímeras**. No aplica a frameworks de **build/proyecto
-completo**, que necesitan su propio scaffolding y arbol de dependencias:
-
-- **Astro** — framework de build (`.astro` files, `astro.config`). Se monta con `npm create astro`.
-  Aunque `import 'astro'` exponga `build/dev/preview`, necesita estructura de proyecto, no un script suelto.
-- **Vite** — bundler con su propio `vite.config` y árbol de deps. Se usa con `npm create vite`.
-- **Angular** — CLI con scaffolding (`ng new`) y toolchain propia. No es una dep importable en scripts.
-- Otros frameworks/CLI de build (Next, Nuxt, Remix, Vue CLI...).
-
-Para esos usa el toolkit oficial (`npm create <x>`, `npx create-<x>@latest`). `ntsx` brilla para
-**utilities à la carte**: un script corto, un scraper, una API de prueba, o replicar un snippet con
-deps sin contaminar tu proyecto.
-
-## Instalación
+## Ejemplos reales (probados ✅)
 
 ```bash
-npm install
-npm run build          # tsup → dist/ntsx.js
-npm link               # opcional: exponer `ntsx` globalmente (queda en PATH)
+# 🕷️ Scraper con axios + jsdom
+ntsx run --with axios --with jsdom examples/scrape.ts https://example.com
+# title:  Example Domain
+# h1:     Example Domain
+# links:  1
+
+# 📟 QR escaneable directo en tu terminal
+ntsx run --with qrcode examples/qr.ts "https://npmjs.com/package/ntsx"
+
+# 🚀 API con Express
+ntsx run --with express examples/express-api.ts
+
+# ⚡️ API con Hono (+ servidor nativo de node)
+ntsx run --with @hono/node-server --with hono examples/hono-api.ts
 ```
 
-## Cómo funciona
+### Servidores de verdad: `ntsx` + pm2
 
-1. `--with pkg@ver` parsea cada dep y genera un `package.json` en el cache.
-2. `npm install` instala las deps en el cache **aislado por workspace**.
-3. Se crea un symlink `node_modules` → cache en el directorio del script.
-4. Ejecuta con `tsx` (para `.ts`/eval) o `node` (para `.js`), pasando los args restantes.
+`ntsx` se reenvía a un `spawn` asíncrono y **restaura el `node_modules` incluso si lo matan** con
+`SIGINT`/`SIGTERM` (Ctrl+C o `pm2 stop`). Así un server aguanta las 24/7 y tu proyecto queda limpio:
 
-> **Integridad del proyecto:** si en el directorio del script ya existe un `node_modules`
-> real, se aparta temporalmente (`.ntsx-<ts>.bak`), se crea el symlink a las deps efímeras
-> y al terminar el script se restaura el original. Nunca se destruye tu `node_modules`.
+```bash
+pm2 start node --name api -- dist/ntsx.js run --with express examples/express-api.ts
+pm2 list
+curl http://localhost:3000/
+pm2 stop api       # → el node_modules original vuelve a su sitio
+```
 
-Los caches de la **segunda ejecución** en adelante son instantáneos (npm ya las tiene).
-
-## Cache y aislamiento
-
-Estructura del cache:
+## ¿Cómo funciona?
 
 ```
-~/.cache/ntsx/                 # en Windows: C:\Users\usuario\.cache\ntsx
-  <workspaceHash>/            # aísla por proyecto (hash del dir del script)
+ntsx run --with chalk -e "..."
+        │
+        ▼
+┌─ 1. hash del workspace + deps ───────────────┐
+│   ~/.cache/ntsx/<workspaceHash>/<depsHash>/  │
+├─ 2. ¿ya instalado? ──► sí → skip npm install ┤
+│   no → package.json + npm install (aislado)   │
+├─ 3. aparta TU node_modules (`.bak` temporal) ─┤
+│   y crea el symlink a las deps efímeras       │
+├─ 4. ejecuta: .ts→tsx · .js→node · eval→tsx ──┤
+│   (o `--eval-runtime node` para node nativo)  │
+└─ 5. ¡SIEMPRE restaura TU node_modules! ───────┘
+```
+
+**Integridad garantizada**: tu `node_modules` real se aparta (`.ntsx-<ts>.bak`), se enlaza el caché
+y al terminar (incluso ante señal) se restaura. Nunca se destruye. **Los symlink huérfanos de un
+crash se auto-curan** en la siguiente corrida.
+
+> Segunda corrida en adelante: **instantánea** (el caché ya las tiene).
+
+## Gestión del caché
+
+```bash
+ntsx cache stats            # workspaces + tamaño
+ntsx cache clean            # pide confirmación
+ntsx cache clean --force    # borra sin piedad
+```
+
+```
+~/.cache/ntsx/                # en Windows: %USERPROFILE%\.cache\ntsx
+  <workspaceHash>/            # aísla por proyecto (nunca mezcla proyectos)
     <depsHash>/               # aísla por conjunto de deps
       node_modules/
 ```
-
-La ruta del home se obtiene de `%USERPROFILE%` (Windows) o `$HOME` (Linux/macOS),
-por lo que siempre acaba en `~/.cache/ntsx` independientemente del SO.
-
-Cada proyecto (workspace) tiene sus propias deps. Dos proyectos que usen deps distintas
-**no se mezclan**. El mismo proyecto con los mismos `--with` reutiliza el cache.
-
-Para limpiar: `rm -rf ~/.cache/ntsx`.
 
 ## Opciones
 
 | Flag | Descripción |
 |------|-------------|
-| `-w, --with <pkg>` | Dep efímera (`pkg`, `pkg@version`, `@scope/pkg`, `@scope/pkg@version`). Repetible |
-| `-e, --eval <code>` | Ejecuta código inline (igual que `node -e`/`tsx -e`) |
+| `-w, --with <pkg>` | Dep efímera (`pkg`, `pkg@version`, `@scope/pkg@version`). Repetible |
+| `-e, --eval <code>` | Código inline (como `node -e` / `tsx -e`) |
 | `--eval-runtime <tsx\|node>` | Runner del eval (default: `tsx`) |
-| `--tsx-args <flags>` | Flags que van a `tsx` antes del script (`.ts`/`.tsx` y eval). Repetible |
-| `--node-args <flags>` | Flags que van a `node` antes del script (`.js`/`.mjs`). Repetible |
-| `--npm-args <flags>` | Flags que van al `npm install` del caché. Repetible |
+| `--tsx-args <flags>` | Flags para `tsx` antes del script (`.ts`/eval). Repetible |
+| `--node-args <flags>` | Flags para `node` antes del script (`.js`/`.mjs`). Repetible |
+| `--npm-args <flags>` | Flags para el `npm install` del caché. Repetible |
 | `-q, --quiet` | Silencia la salida de `npm install` |
-| `-d, --debug` | Muestra el flujo interno: rutas del caché, comando `npm install`, symlink, comando del runner y restore |
-| `--node <version>` | Pin de versión de Node (**reservado**, para una versión futura) |
-| `-h, --help` | Ayuda |
+| `-d, --debug` | Traza el flujo: rutas del caché, comandos, symlink, restore |
+| `--node <version>` | Pin de Node (**reservado** para una próxima versión) |
 
-## Orden de los flags (igual que tsx)
+## ¿Cuándo NO usar ntsx?
 
-```
-ntsx run [flags del runtime] ./file.ts [flags y args del script]
-```
+`ntsx` brilla para **utilities à la carte**, no para frameworks de build con su propio scaffolding
+(Astro, Vite, Angular, Next, Nuxt...). Para esos usa el toolkit oficial (`npm create <x>`).
 
-- Los flags del **runner** (`--tsx-args`, `--node-args`, `--npm-args`) van **antes del script** y se reenvían a su CLI interno correspondiente.
-- Todo lo que vaya **después del script** se pasa **tal cual al script** (gracias a `passThroughOptions`), aunque parezca un flag de ntsx. Ejemplo:
+> ✨ ntsx = 0 fricción en el **99% de los scripts**: cópialo en los snippets, sácalo en producción.
+
+## Instalación
 
 ```bash
-ntsx run --tsx-args "--tsconfig=tsconfig.custom.json" src/main.ts
-ntsx run ./app.ts --verbose --with foo    # --verbose --with foo → del script, no de ntsx
-ntsx run --npm-args "--registry=https://registry.npmjs.org" -e "console.log('ok')"
-ntsx run --eval-runtime node -e "await Promise.resolve()"   # eval plano con node nativo
+npm install                 # deps del desarrollo
+npm run build               # tsup → dist/ntsx.js (single-file, shebang)
+npm link                    # opcional: `ntsx` en tu PATH
 ```
 
-## Requsitos
+**Requisitos:** Node ≥ 18 · `tsx` (si no está, `npx -y tsx` de fallback).
 
-- Node.js ≥ 18
-- `tsx` disponible (se usa para `.ts`/eval); si no está, ntsx hace fallback a `npx -y tsx`
+## Stack
 
-## Proyecto
+- TypeScript + Commander (CLI) + zod (validación)
+- `tsup` → bundle autosuficiente (`commander`, `zod` incluidos en `dist`)
+- Tests con `node:test` (20/20 ✅)
 
-- TypeScript (última estable) + Commander (parseo de CLI) + zod (validación de args)
-- Build con `tsup` → `dist/ntsx.js` (single file, shebang incluido)
+---
+
+<div align="center">
+
+MIT · hecho con ❤️ para los que tienen prisa
+
+</div>

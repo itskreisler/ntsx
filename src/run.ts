@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { statSync } from 'node:fs'
 import path from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { prepareCache, restoreNodeModules, type NodeModulesStash } from './cache.js'
 
 export interface RunOptions {
@@ -131,16 +131,43 @@ export async function run(opts: RunOptions): Promise<number> {
         : [...runnerFlags, scriptPath as string, ...parsed.scriptArgs]
     }
 
-    const res = spawnSync(cmd, args, { stdio: 'inherit', env: process.env })
     if (parsed.debug) {
       const shownArgs = args.map((a) => (a.includes(' ') ? JSON.stringify(a) : a)).join(' ')
       process.stderr.write(`ntsx: [debug] exec: ${cmd} ${shownArgs}\n`)
     }
-    if (res.status === null) {
-      process.stderr.write(`ntsx: failed to spawn ${cmd}: ${JSON.stringify(res.error)}\n`)
-      return 1
+
+    // spawn asíncrono: permite reaccionar a SIGINT/SIGTERM mientras el runner
+    // (p. ej. un servidor) sigue vivo, reenviar la señal y restaurar node_modules.
+    const child = spawn(cmd, args, { stdio: 'inherit', env: process.env })
+    const closed = new Promise<number | null>((resolve) => {
+      child.on('close', (code) => resolve(code))
+    })
+    const spawnError = new Promise<number>((_, reject) => {
+      child.on('error', reject)
+    })
+
+    let gotSignal: NodeJS.Signals | null = null
+    const onSignal = (sig: NodeJS.Signals): void => {
+      if (gotSignal) return
+      gotSignal = sig
+      if (parsed.debug) process.stderr.write(`ntsx: [debug] ${sig} recibida, restaurando node_modules\n`)
+      child.kill(sig)
     }
-    return res.status
+    process.on('SIGINT', onSignal)
+    process.on('SIGTERM', onSignal)
+
+    let code: number
+    try {
+      const result = await Promise.race([closed, spawnError])
+      code = result === null ? (gotSignal ? (gotSignal === 'SIGINT' ? 130 : 143) : 1) : result
+    } finally {
+      process.removeListener('SIGINT', onSignal)
+      process.removeListener('SIGTERM', onSignal)
+    }
+    if (code !== 0 && gotSignal && parsed.debug) {
+      process.stderr.write(`ntsx: [debug] runner terminó por ${gotSignal} → node_modules restaurado\n`)
+    }
+    return code
   } finally {
     if (stash) {
       if (parsed.debug) process.stderr.write(`ntsx: [debug] restore node_modules (${stash.kind})\n`)
