@@ -208,7 +208,8 @@ function runNpmInstall(dir: string, quiet: boolean, npmArgs: string[], debug = f
 function cleanNpmEnv(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = { ...base }
   for (const key of Object.keys(env)) {
-    if (key.startsWith('npm_config_')) delete env[key]
+    // npm lee las dos formas (npm_config_x y NPM_CONFIG_X); taparlas todas
+    if (/^npm_config_/i.test(key)) delete env[key]
   }
   return env
 }

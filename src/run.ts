@@ -158,11 +158,17 @@ export async function run(opts: RunOptions): Promise<number> {
     })
 
     let gotSignal: NodeJS.Signals | null = null
+    let graceTimer: NodeJS.Timeout | null = null
     const onSignal = (sig: NodeJS.Signals): void => {
       if (gotSignal) return
       gotSignal = sig
       if (parsed.debug) process.stderr.write(`ntsx: [debug] ${sig} recibida, restaurando node_modules\n`)
       child.kill(sig)
+      // Si el runner atrapa la señal y no muere, SIGKILL a los 3s para no colgar
+      // (así el finally restaura el node_modules siempre).
+      graceTimer = setTimeout(() => {
+        if (child.exitCode === null) child.kill('SIGKILL')
+      }, 3000)
     }
     process.on('SIGINT', onSignal)
     process.on('SIGTERM', onSignal)
@@ -170,9 +176,11 @@ export async function run(opts: RunOptions): Promise<number> {
     let code: number
     try {
       const result = await closed
+      if (graceTimer) clearTimeout(graceTimer)
       if (spawnErrMsg) process.stderr.write(`ntsx: failed to spawn ${cmd}: ${spawnErrMsg}\n`)
       code = result === null ? (gotSignal ? (gotSignal === 'SIGINT' ? 130 : 143) : 1) : result
     } finally {
+      if (graceTimer) clearTimeout(graceTimer)
       process.removeListener('SIGINT', onSignal)
       process.removeListener('SIGTERM', onSignal)
     }
