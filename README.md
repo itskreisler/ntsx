@@ -2,14 +2,16 @@
 
 # ⚡ ntsx
 
-**Corre cualquier script de Node/TS con dependencias efímeras — sin `npm install`, sin contaminar tu proyecto.**
+**Run any Node/TS script with ephemeral dependencies — no `npm install`, no project pollution.**
 
 ```bash
-ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hola mundo'))"
+ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hello world'))"
 ```
 
-**Siembra, corre, restaura. Tu `node_modules` queda tal cual.**
-*Estilo `uv --with` para Node.js.*
+**Plant, run, restore. Your `node_modules` stays exactly as it was.**
+*`uv --with`, but for Node.js.*
+
+> 🌐 [Español](/README-es.md)
 
 ---
 
@@ -25,158 +27,164 @@ ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hola mundo
 
 ---
 
-## ¿Qué es esto?
+## What is this?
 
-`ntsx` ejecuta un script (`.js`, `.ts`, `.tsx`, o código inline con `-e`) y le da **dependencias
-efímeras**: las instala sobre la marcha en un caché aislado `~/.cache/ntsx`, las enlaza con un
-`node_modules` temporal, y **restaura tu `node_modules` real al terminar**.
+`ntsx` runs a script (`.js`, `.ts`, `.tsx`, or inline code with `-e`) with **ephemeral
+dependencies**: it installs them on the fly into an isolated cache (`~/.cache/ntsx`), links them
+through a temporary `node_modules`, and **restores your real `node_modules` when done**.
 
-Un snippet, un scraper, una API de prueba, un QR en el terminal... **sin tocar el `package.json`**
-de tu proyecto. Como `uv --with`, pero para Node.
+A snippet, a scraper, a throwaway API, a QR in your terminal... **without ever touching the
+`package.json`** of your project. Like `uv --with`, but for Node.
 
 ```bash
-# script con deps que NO tienes instaladas
+# a script that needs deps you DON'T have installed
 ntsx run --with axios --with jsdom examples/scrape.ts
 
-# código inline, sin crear ni un archivo
+# inline code, without creating a single file
 ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://ntsx.dev', {type:'terminal', small:true}).then(console.log)"
 
-# con versiones
+# pinned versions
 ntsx run --with chalk@^4 script.js arg1
 
-# pasando argumentos al script
+# pass args to the script
 ntsx run --with axios diario.ts --fecha hoy
 ```
 
-## ¿Por qué ntsx y no <del>npx/tsx/npm</del>?
+## Why ntsx over <del>npx/tsx/npm</del>?
 
-| Lo que quieres hacer | npx | tsx | ntsx |
+| What you want to do | npx | tsx | ntsx |
 |---|---|---|---|
-| Correr TS sin instalar nada | ❌ no transpila | ✅ | ✅ |
-| Usar una dep que no tienes instalada | ⚠️ `npx -p chalk` (feo) | ❌ hay que `npm i` | ✅ `--with chalk` |
-| Repetibles, con versiones | ⚠️ | ❌ | ✅ `--with @scope/pkg@^2` |
-| Sin tocar tu `package.json` | ✅ | ❌ | ✅ |
-| Sin romper tu `node_modules` | ❌ suele ensuciar | ⚠️ | ✅ (se restaura) |
-| Caché reutilizable entre corridas | ⚠️ | ❌ | ✅ `~/.cache/ntsx` |
+| Run TS without installing anything | ❌ no transpile | ✅ | ✅ |
+| Use a dep you don't have installed | ⚠️ `npx -p chalk` (ugly) | ❌ needs `npm i` | ✅ `--with chalk` |
+| Repeatable, pinned versions | ⚠️ | ❌ | ✅ `--with @scope/pkg@^2` |
+| Never touch your `package.json` | ✅ | ❌ | ✅ |
+| Never break your `node_modules` | ❌ often leaves a mess | ⚠️ | ✅ (restored) |
+| Cache reused across runs | ⚠️ | ❌ | ✅ `~/.cache/ntsx` |
 
-**Orden de los flags**: lo de **antes** del script es del runner, lo de **después** es del script
-(igual que tsx):
+**Flag order**: everything **before** the script is for the runner, everything **after** goes to the
+script (same as tsx):
 
 ```bash
 ntsx run --tsx-args "--tsconfig=tsconfig.custom.json" src/main.ts --verbose
-#                       ↑ flags del runner                    ↑ flags del script
+#                       ↑ runner flags                    ↑ script flags
 ```
 
-## Ejemplos reales (probados ✅)
+## Real examples (tested ✅)
 
 ```bash
-# 🕷️ Scraper con axios + jsdom
+# 🕷️ Scraper with axios + jsdom
 ntsx run --with axios --with jsdom examples/scrape.ts https://example.com
 # title:  Example Domain
 # h1:     Example Domain
 # links:  1
 
-# 📟 QR escaneable directo en tu terminal
-ntsx run --with qrcode examples/qr.ts "https://npmjs.com/package/ntsx"
+# 📟 Scanable QR straight in your terminal
+ntsx run --with qrcode examples/qr.ts "https://npmjs.com/package/@kreisler/ntsx"
 
-# 🚀 API con Express
+# 🚀 Express API
 ntsx run --with express examples/express-api.ts
 
-# ⚡️ API con Hono (+ servidor nativo de node)
+# ⚡ Hono API (+ native node server)
 ntsx run --with @hono/node-server --with hono examples/hono-api.ts
 ```
 
-### Servidores de verdad: `ntsx` + pm2
+### Long-running servers: `ntsx` + pm2
 
-`ntsx` se reenvía a un `spawn` asíncrono y **restaura el `node_modules` incluso si lo matan** con
-`SIGINT`/`SIGTERM` (Ctrl+C o `pm2 stop`). Así un server aguanta las 24/7 y tu proyecto queda limpio:
+`ntsx` runs the runner in an async `spawn` and **restores `node_modules` even when killed** by
+`SIGINT`/`SIGTERM` (Ctrl+C or `pm2 stop`). So your server lives 24/7 and your project stays clean:
 
 ```bash
 pm2 start node --name api -- dist/ntsx.js run --with express examples/express-api.ts
 pm2 list
 curl http://localhost:3000/
-pm2 stop api       # → el node_modules original vuelve a su sitio
+pm2 stop api       # → the original node_modules comes back
 ```
 
-## ¿Cómo funciona?
+## How it works
 
 ```
 ntsx run --with chalk -e "..."
         │
         ▼
-┌─ 1. hash del workspace + deps ───────────────┐
+┌─ 1. hash the workspace + deps ────────────────┐
 │   ~/.cache/ntsx/<workspaceHash>/<depsHash>/  │
-├─ 2. ¿ya instalado? ──► sí → skip npm install ┤
-│   no → package.json + npm install (aislado)   │
-├─ 3. aparta TU node_modules (`.bak` temporal) ─┤
-│   y crea el symlink a las deps efímeras       │
-├─ 4. ejecuta: .ts→tsx · .js→node · eval→tsx ──┤
-│   (o `--eval-runtime node` para node nativo)  │
-└─ 5. ¡SIEMPRE restaura TU node_modules! ───────┘
+├─ 2. already installed? ──► yes → skip npm i ─┤
+│   no → package.json + npm install (isolated)  │
+├─ 3. stash YOUR node_modules (temporary `.bak`)┤
+│   and symlink the ephemeral deps in place     │
+├─ 4. run: .ts→tsx · .js→node · eval→tsx ──────┤
+│   (or `--eval-runtime node` for plain node)   │
+└─ 5. ALWAYS restore YOUR node_modules! ────────┘
 ```
 
-**Integridad garantizada**: tu `node_modules` real se aparta (`.ntsx-<ts>.bak`), se enlaza el caché
-y al terminar (incluso ante señal) se restaura. Nunca se destruye. **Los symlink huérfanos de un
-crash se auto-curan** en la siguiente corrida.
+**Guaranteed integrity**: your real `node_modules` is stashed as `.ntsx-<ts>.bak`, the cache is
+symlinked in, and when the run ends (signals included) it is restored. It is never destroyed.
+**Orphaned symlinks from a crash self-heal** on the next run.
 
-> Segunda corrida en adelante: **instantánea** (el caché ya las tiene).
+> From the second run on it's **instant** (the cache already has the deps).
 
-## Gestión del caché
+## Cache management
 
 ```bash
-ntsx cache stats            # workspaces + tamaño
-ntsx cache clean            # pide confirmación
-ntsx cache clean --force    # borra sin piedad
+ntsx cache stats            # workspaces + size
+ntsx cache clean            # asks for confirmation
+ntsx cache clean --force    # nukes it mercilessly
 ```
 
 ```
-~/.cache/ntsx/                # en Windows: %USERPROFILE%\.cache\ntsx
-  <workspaceHash>/            # aísla por proyecto (nunca mezcla proyectos)
-    <depsHash>/               # aísla por conjunto de deps
+~/.cache/ntsx/                # on Windows: %USERPROFILE%\.cache\ntsx
+  <workspaceHash>/            # isolated per project (never mixes projects)
+    <depsHash>/               # isolated per dep set
       node_modules/
 ```
 
-## Opciones
+## Options
 
-| Flag | Descripción |
+| Flag | Description |
 |------|-------------|
-| `-w, --with <pkg>` | Dep efímera (`pkg`, `pkg@version`, `@scope/pkg@version`). Repetible |
-| `-e, --eval <code>` | Código inline (como `node -e` / `tsx -e`) |
-| `--eval-runtime <tsx\|node>` | Runner del eval (default: `tsx`) |
-| `--tsx-args <flags>` | Flags para `tsx` antes del script (`.ts`/eval). Repetible |
-| `--node-args <flags>` | Flags para `node` antes del script (`.js`/`.mjs`). Repetible |
-| `--npm-args <flags>` | Flags para el `npm install` del caché. Repetible |
-| `-q, --quiet` | Silencia la salida de `npm install` |
-| `-d, --debug` | Traza el flujo: rutas del caché, comandos, symlink, restore |
-| `--node <version>` | Pin de Node (**reservado** para una próxima versión) |
+| `-w, --with <pkg>` | Ephemeral dep (`pkg`, `pkg@version`, `@scope/pkg@version`). Repeatable |
+| `-e, --eval <code>` | Inline code (like `node -e` / `tsx -e`) |
+| `--eval-runtime <tsx\|node>` | Eval runner (default: `tsx`) |
+| `--tsx-args <flags>` | Flags for `tsx` before the script (`.ts`/eval). Repeatable |
+| `--node-args <flags>` | Flags for `node` before the script (`.js`/`.mjs`). Repeatable |
+| `--npm-args <flags>` | Flags for the cache's `npm install`. Repeatable |
+| `-q, --quiet` | Silence `npm install` output |
+| `-d, --debug` | Trace the flow: cache paths, commands, symlink, restore |
+| `--node <version>` | Node pin (**reserved** for a future release) |
 
-## ¿Cuándo NO usar ntsx?
+## When NOT to use ntsx
 
-`ntsx` brilla para **utilities à la carte**, no para frameworks de build con su propio scaffolding
-(Astro, Vite, Angular, Next, Nuxt...). Para esos usa el toolkit oficial (`npm create <x>`).
+`ntsx` shines for **à-la-carte utilities**, not for build frameworks with their own scaffolding
+(Astro, Vite, Angular, Next, Nuxt...). Use their official toolkit (`npm create <x>`) for those.
 
-> ✨ ntsx = 0 fricción en el **99% de los scripts**: cópialo en los snippets, sácalo en producción.
+> ✨ ntsx = zero friction for the **99% of scripts**: paste it in snippets, ship it in production.
 
-## Instalación
+## Install
 
 ```bash
-npm install                 # deps del desarrollo
-npm run build               # tsup → dist/ntsx.js (single-file, shebang)
-npm link                    # opcional: `ntsx` en tu PATH
+npm install -g @kreisler/ntsx   # 🚀 direct use: `ntsx` lands in your PATH
 ```
 
-**Requisitos:** Node ≥ 18 · `tsx` (si no está, `npx -y tsx` de fallback).
+Or, from this repo:
+
+```bash
+npm install                 # dev deps
+npm run build               # tsup → dist/ntsx.js (single-file, shebang)
+npm link                    # optional: `ntsx` in your PATH
+```
+
+**Requirements:** Node ≥ 18 · `tsx` (falls back to `npx -y tsx` if missing).
 
 ## Stack
 
-- TypeScript + Commander (CLI) + zod (validación)
-- `tsup` → bundle autosuficiente (`commander`, `zod` incluidos en `dist`)
-- Tests con `node:test` (20/20 ✅)
+- TypeScript + Commander (CLI) + zod (validation)
+- `tsup` → self-contained bundle (`commander`, `zod` included in `dist`)
+- Tests with `node:test` (20/20 ✅)
 
 ---
 
 <div align="center">
 
-MIT · hecho con ❤️ para los que tienen prisa
+MIT · made with ❤️ for people in a hurry
 
 </div>
