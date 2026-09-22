@@ -139,11 +139,13 @@ export async function run(opts: RunOptions): Promise<number> {
     // spawn asíncrono: permite reaccionar a SIGINT/SIGTERM mientras el runner
     // (p. ej. un servidor) sigue vivo, reenviar la señal y restaurar node_modules.
     const child = spawn(cmd, args, { stdio: 'inherit', env: process.env })
+    let spawnErrMsg: string | null = null
     const closed = new Promise<number | null>((resolve) => {
       child.on('close', (code) => resolve(code))
-    })
-    const spawnError = new Promise<number>((_, reject) => {
-      child.on('error', reject)
+      child.on('error', (err: Error) => {
+        spawnErrMsg = err.message
+        resolve(null)
+      })
     })
 
     let gotSignal: NodeJS.Signals | null = null
@@ -158,7 +160,8 @@ export async function run(opts: RunOptions): Promise<number> {
 
     let code: number
     try {
-      const result = await Promise.race([closed, spawnError])
+      const result = await closed
+      if (spawnErrMsg) process.stderr.write(`ntsx: failed to spawn ${cmd}: ${spawnErrMsg}\n`)
       code = result === null ? (gotSignal ? (gotSignal === 'SIGINT' ? 130 : 143) : 1) : result
     } finally {
       process.removeListener('SIGINT', onSignal)

@@ -1,9 +1,14 @@
 #!/usr/bin/env node
+import { createRequire } from 'node:module'
 import { Command } from 'commander'
 import { z } from 'zod'
 import { run } from './run.js'
 import { CACHE_ROOT } from './config.js'
 import { cacheStats, cleanCache, fmtBytes } from './cache-cmd.js'
+
+// Fuente única de versión: package.json (el bundle queda con la versión real)
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
 
 /** Acumula valores de opciones repetidas: --with a --with b → ['a','b'] */
 function collect(value: string, previous: string[]): string[] {
@@ -45,7 +50,7 @@ program.enablePositionalOptions()
 program
   .name('ntsx')
   .description('Run Node/TS scripts with ephemeral dependencies (uv-style --with)')
-  .version('0.1.0')
+  .version(version)
 
 program
   .command('run')

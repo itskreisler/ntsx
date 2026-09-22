@@ -67,6 +67,7 @@ function promptConfirm(message: string): Promise<boolean> {
       stdin.pause()
       resolve(/^y(es)?$/i.test(String(data).trim()))
     })
+    stdin.once('end', () => resolve(false))
     stdin.once('error', () => resolve(false))
   })
 }

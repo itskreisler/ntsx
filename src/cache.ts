@@ -108,7 +108,7 @@ async function stashNodeModules(p: string): Promise<NodeModulesStash> {
       return { kind: 'link', originalTarget }
     }
     if (st.isDirectory()) {
-      const backupPath = path.join(path.dirname(p), `.ntsx-${Date.now()}.bak`)
+      const backupPath = path.join(path.dirname(p), `.ntsx-${process.pid}-${Date.now()}.bak`)
       await fs.rename(p, backupPath)
       return { kind: 'dir', backupPath }
     }
@@ -123,14 +123,30 @@ export async function restoreNodeModules(p: string, stash: NodeModulesStash): Pr
   // symlink activo produce ENOTDIR; siempre desenlazamos el symlink temporal primero.
   if (stash.kind === 'link' && stash.originalTarget) {
     await fs.unlink(p).catch(() => {})
-    await fs.symlink(stash.originalTarget, p, 'dir').catch(() => {})
+    try {
+      await fs.symlink(stash.originalTarget, p, 'dir')
+    } catch (err) {
+      warn(`no se pudo restaurar el symlink original ${stash.originalTarget} en ${p}: ${errMsg(err)}`)
+    }
   } else if (stash.kind === 'dir' && stash.backupPath) {
     await fs.unlink(p).catch(() => {})
-    await fs.rename(stash.backupPath, p).catch(() => {})
+    try {
+      await fs.rename(stash.backupPath, p)
+    } catch (err) {
+      warn(`no se pudo restaurar tu node_modules real desde ${stash.backupPath}: ${errMsg(err)}`)
+    }
   } else {
     // kind 'fresh': solo eliminamos el symlink que creamos
     await fs.unlink(p).catch(() => {})
   }
+}
+
+function warn(msg: string): void {
+  process.stderr.write(`ntsx: warning: ${msg}\n`)
+}
+
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 /** Divide "pkg" | "pkg@1.2.3" | "@scope/pkg" | "@scope/pkg@1.2.3" en [name, version] */
