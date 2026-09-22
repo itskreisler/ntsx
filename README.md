@@ -2,6 +2,10 @@
 
 # ⚡ ntsx
 
+[![CI](https://github.com/itskreisler/ntsx/actions/workflows/ci.yml/badge.svg)](https://github.com/itskreisler/ntsx/actions)
+[![npm](https://img.shields.io/npm/v/@kreisler/ntsx)](https://www.npmjs.com/package/@kreisler/ntsx)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
+
 **Run any Node/TS script with ephemeral dependencies — no `npm install`, no project pollution.**
 
 ```bash
