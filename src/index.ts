@@ -6,16 +6,26 @@ import { run } from './run.js'
 import { CACHE_ROOT } from './config.js'
 import { cacheStats, cleanCache, fmtBytes } from './cache-cmd.js'
 
-// Fuente única de versión: package.json (el bundle queda con la versión real)
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
 
-/** Acumula valores de opciones repetidas: --with a --with b → ['a','b'] */
+/**
+ * Accumulates repeatable CLI option flag values into an array.
+ *
+ * @param value - New option value.
+ * @param previous - Previously accumulated option values.
+ * @returns Concatenated option array.
+ */
 function collect(value: string, previous: string[]): string[] {
   return previous.concat([value])
 }
 
-/** Convierte cualquier error en un mensaje legible (sin stack trace). */
+/**
+ * Formats unknown error value into a readable user error message.
+ *
+ * @param err - Error instance or Zod validation error.
+ * @returns Clean error message string without stack trace.
+ */
 function cleanErrorMessage(err: unknown): string {
   if (err instanceof z.ZodError) {
     return err.issues
@@ -28,7 +38,12 @@ function cleanErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
-/** Ejecuta un handler y traduce los errores a mensaje limpio + exit 1. */
+/**
+ * Wraps action handlers with error catching and formatted error output.
+ * Sets `process.exitCode = 1` on failure.
+ *
+ * @param fn - Async action handler callback.
+ */
 async function guard(fn: () => Promise<void>): Promise<void> {
   try {
     await fn()
@@ -38,6 +53,11 @@ async function guard(fn: () => Promise<void>): Promise<void> {
   }
 }
 
+/**
+ * Logs a note to stderr if reserved options (such as `--node`) are passed.
+ *
+ * @param options - CLI options object.
+ */
 function noteReservedFlags(options: { node?: string }): void {
   if (options.node) {
     process.stderr.write(`ntsx: note: --node is reserved and currently ignored\n`)
@@ -58,7 +78,7 @@ program
   .passThroughOptions()
   .option('-w, --with <pkg>', 'ephemeral dependency (pkg, pkg@version, @scope/pkg@version). Repeatable', collect, [])
   .option('-e, --eval <code>', 'evaluate inline code (like node -e)')
-  .option('--eval-runtime <tsx|node>', 'runtime for inline eval (default: tsx)')
+  .option('--eval-runtime <tsx|node>', 'runtime for inline eval (default: tsx)', 'tsx')
   .option('--tsx-args <flags>', 'flags forwarded to tsx before the script (.ts/tsx/eval runs). Repeatable', collect, [])
   .option('--node-args <flags>', 'flags forwarded to node before the script (.js/.mjs runs). Repeatable', collect, [])
   .option('--npm-args <flags>', 'flags forwarded to the ephemeral npm install. Repeatable', collect, [])
@@ -67,26 +87,44 @@ program
   .option('--node <version>', 'pin Node version (reserved for a future version)')
   .argument('[script]', 'script path (js, ts, mts, cts, tsx). Omit with --eval')
   .argument('[scriptArgs...]', 'arguments passed to the script')
-  .action(async (script: string | undefined, scriptArgs: string[], options: { with?: string[]; eval?: string; evalRuntime?: string; tsxArgs?: string[]; nodeArgs?: string[]; npmArgs?: string[]; node?: string; quiet?: boolean; debug?: boolean }) => {
-    noteReservedFlags(options)
-    await guard(async () => {
-      const exitCode = await run({
-        withList: options.with ?? [],
-        script: script ?? null,
-        evalCode: options.eval,
-        scriptArgs,
-        quiet: options.quiet ?? false,
-        evalRuntime: options.evalRuntime as 'tsx' | 'node' | undefined,
-        tsxArgs: options.tsxArgs ?? [],
-        nodeArgs: options.nodeArgs ?? [],
-        npmArgs: options.npmArgs ?? [],
-        debug: options.debug ?? false,
+  .action(
+    async (
+      script: string | undefined,
+      scriptArgs: string[],
+      options: {
+        with?: string[]
+        eval?: string
+        evalRuntime?: string
+        tsxArgs?: string[]
+        nodeArgs?: string[]
+        npmArgs?: string[]
+        node?: string
+        quiet?: boolean
+        debug?: boolean
+      }
+    ) => {
+      noteReservedFlags(options)
+      await guard(async () => {
+        const isEval = options.eval !== undefined
+        const effectiveScriptArgs = isEval && script ? [script, ...scriptArgs] : scriptArgs
+        const exitCode = await run({
+          withList: options.with ?? [],
+          script: isEval ? null : script ?? null,
+          evalCode: options.eval,
+          scriptArgs: effectiveScriptArgs,
+          quiet: options.quiet ?? false,
+          evalRuntime: options.evalRuntime as 'tsx' | 'node' | undefined,
+          tsxArgs: options.tsxArgs ?? [],
+          nodeArgs: options.nodeArgs ?? [],
+          npmArgs: options.npmArgs ?? [],
+          debug: options.debug ?? false,
+        })
+        if (exitCode !== 0) process.exitCode = exitCode
       })
-      if (exitCode !== 0) process.exitCode = exitCode
-    })
-  })
+    }
+  )
 
-// ----- comando: cache -----
+// ----- command: cache -----
 const cacheCmd = program.command('cache').description('Manage the ntsx dependency cache')
 
 cacheCmd

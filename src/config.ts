@@ -2,9 +2,10 @@ import path from 'node:path'
 import os from 'node:os'
 
 /**
- * Rutas globales del cache. Fuente única: tanto el núcleo (prepareCache)
- * como los comandos de gestión (clean/stats) obtienen aquí sus rutas,
- * evitando dependencias circulares entre módulos.
+ * Resolves the user's home directory across operating systems.
+ * Checked in order: `USERPROFILE` (Windows), `HOME` (POSIX), and `os.homedir()`.
+ *
+ * @returns The absolute path to the user's home directory.
  */
 export function homeDir(): string {
   const env = process.platform === 'win32' ? process.env.USERPROFILE : process.env.HOME
@@ -12,4 +13,8 @@ export function homeDir(): string {
   return os.homedir()
 }
 
+/**
+ * The absolute path to the root directory for storing the ntsx dependency cache.
+ * Defaults to `~/.cache/ntsx` on POSIX or `%USERPROFILE%\.cache\ntsx` on Windows.
+ */
 export const CACHE_ROOT = path.join(homeDir(), '.cache', 'ntsx')

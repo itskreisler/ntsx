@@ -4,16 +4,29 @@ import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { prepareCache, restoreNodeModules, acquireRunLock, type NodeModulesStash } from './cache.js'
 
+/**
+ * Options for running a script or evaluating inline code.
+ */
 export interface RunOptions {
+  /** List of ephemeral package specifiers (`pkg`, `pkg@version`, `@scope/pkg@version`). */
   withList: string[]
+  /** Relative or absolute script file path. Null when using eval. */
   script: string | null
+  /** Inline code string to evaluate. */
   evalCode?: string
+  /** Runtime environment for inline code evaluation (`tsx` or `node`). */
   evalRuntime?: 'tsx' | 'node'
+  /** Arguments forwarded directly to the script. */
   scriptArgs: string[]
+  /** If true, suppresses npm install stdout. */
   quiet?: boolean
+  /** Flags forwarded to tsx before script execution. */
   tsxArgs?: string[]
+  /** Flags forwarded to node before script execution. */
   nodeArgs?: string[]
+  /** Flags forwarded to npm install. */
   npmArgs?: string[]
+  /** If true, outputs internal execution step traces to stderr. */
   debug?: boolean
 }
 
@@ -38,29 +51,54 @@ const runOptionsSchema = z.object({
   debug: z.boolean().default(false),
 })
 
-/** Divide cada string de args (puede traer espacios) en tokens sueltos. */
+/**
+ * Splits argument flag strings into tokens while preserving quoted substrings.
+ *
+ * @param raws - Array of raw argument flag strings.
+ * @returns Tokenized argument flags.
+ */
 function splitArgs(raws: string[]): string[] {
   const out: string[] = []
-  for (const raw of raws) out.push(...raw.split(/\s+/).filter(Boolean))
+  for (const raw of raws) {
+    const matches = raw.match(/"[^"]*"|'[^']*'|\S+/g) ?? []
+    out.push(...matches.map((m) => m.replace(/^(['"])(.*)\1$/, '$2')))
+  }
   return out
 }
 
+/**
+ * Checks if file path extension corresponds to TypeScript (.ts, .mts, .cts, .tsx).
+ *
+ * @param p - File path.
+ * @returns True if path is a TypeScript file.
+ */
 function isTsFile(p: string): boolean {
   return /\.(ts|mts|cts|tsx)$/.test(p)
 }
 
+/**
+ * Resolves script path to absolute file path or throws if script does not exist.
+ *
+ * @param script - Script file path string.
+ * @returns Resolved absolute path.
+ */
 function resolveScript(script: string): string {
   const abs = path.resolve(script)
   try {
     const st = statSync(abs)
     if (st.isFile()) return abs
   } catch {
-    // no existe directo
+    // File not found
   }
   throw new Error(`Script not found: ${script}`)
 }
 
-/** Resuelve el binario en el PATH (en Windows prueba .cmd/.exe). */
+/**
+ * Resolves binary executable path in environment PATH variable.
+ *
+ * @param bin - Binary executable name.
+ * @returns Absolute path to binary executable or null if not found.
+ */
 function which(bin: string): string | null {
   const pathEnv = process.env.PATH ?? ''
   const candidates = process.platform === 'win32' ? [bin, `${bin}.cmd`, `${bin}.exe`] : [bin]
@@ -71,18 +109,22 @@ function which(bin: string): string | null {
         const full = path.join(dir, candidate)
         if (statSync(full).isFile()) return full
       } catch {
-        // no encontrado, continúa
+        // Not found in this PATH entry
       }
     }
   }
   return null
 }
 
-/** Lanza el script o eval con runtime adecuado; propaga exit code. */
+/**
+ * Executes target script or inline code with ephemeral dependencies and options.
+ *
+ * @param opts - Execution options.
+ * @returns Promise resolving to exit status code.
+ */
 export async function run(opts: RunOptions): Promise<number> {
   const parsed = runOptionsSchema.parse(opts)
 
-  // Modo eval: no hay archivo, targetDir = cwd
   const isEval = parsed.evalCode !== undefined
   if (!isEval && (parsed.script === null || parsed.script === '')) {
     throw new Error('A script path or --eval code is required')
@@ -91,15 +133,11 @@ export async function run(opts: RunOptions): Promise<number> {
   const scriptPath = isEval ? null : resolveScript(parsed.script as string)
   const targetDir = scriptPath ? path.dirname(scriptPath) : process.cwd()
 
-  // Acciones temporales sobre el node_modules del target (restaurar al salir)
   let stash: NodeModulesStash | null = null
   let releaseLock: (() => Promise<void>) | null = null
 
   try {
-    // 1. Bajar deps efímeras + symlink (solo si hay --with)
     if (parsed.withList.length > 0) {
-      // Lock por targetDir: evita que dos runs concurrentes compitan por el
-      // stash/symlink/restore del mismo node_modules.
       releaseLock = await acquireRunLock(targetDir)
       if (parsed.debug) process.stderr.write(`ntsx: [debug] run lock adquirido en ${targetDir}\n`)
       const prepped = await prepareCache(parsed.withList, targetDir, {
@@ -110,8 +148,6 @@ export async function run(opts: RunOptions): Promise<number> {
       stash = prepped.stash
     }
 
-    // 2. Elegir runtime y flags que le tocan (antes del script)
-    //    archivo → por extensión (.ts→tsx, .js→node); eval → --eval-runtime
     const isTs = scriptPath !== null ? isTsFile(scriptPath) : parsed.evalRuntime === 'tsx'
     let cmd: string
     let args: string[]
@@ -125,7 +161,6 @@ export async function run(opts: RunOptions): Promise<number> {
           ? [...runnerFlags, '-e', parsed.evalCode as string, ...parsed.scriptArgs]
           : [...runnerFlags, scriptPath as string, ...parsed.scriptArgs]
       } else {
-        // npx -y tsx como fallback (descarga al vuelo)
         cmd = which('npx') ?? 'npx'
         args = isEval
           ? ['-y', 'tsx', ...runnerFlags, '-e', parsed.evalCode as string, ...parsed.scriptArgs]
@@ -144,9 +179,6 @@ export async function run(opts: RunOptions): Promise<number> {
       process.stderr.write(`ntsx: [debug] exec: ${cmd} ${shownArgs}\n`)
     }
 
-    // spawn asíncrono: permite reaccionar a SIGINT/SIGTERM mientras el runner
-    // (p. ej. un servidor) sigue vivo, reenviar la señal y restaurar node_modules.
-    // En Windows un .cmd necesita shell (los bins de npm son .cmd).
     const spawnOpts: { stdio: 'inherit'; env: NodeJS.ProcessEnv; shell?: boolean } = {
       stdio: 'inherit',
       env: process.env,
@@ -169,8 +201,6 @@ export async function run(opts: RunOptions): Promise<number> {
       gotSignal = sig
       if (parsed.debug) process.stderr.write(`ntsx: [debug] ${sig} recibida, restaurando node_modules\n`)
       child.kill(sig)
-      // Si el runner atrapa la señal y no muere, SIGKILL a los 3s para no colgar
-      // (así el finally restaura el node_modules siempre).
       graceTimer = setTimeout(() => {
         if (child.exitCode === null) child.kill('SIGKILL')
       }, 3000)
