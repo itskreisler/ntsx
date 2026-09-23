@@ -32,6 +32,7 @@
     "build": "tsup",
     "dev": "tsx src/index.ts -- --help",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
     "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs",
     "prepublishOnly": "npm run build"
   },
@@ -41,8 +42,11 @@
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
+    "@typescript-eslint/eslint-plugin": "^8.70.1",
+    "@typescript-eslint/parser": "^8.70.1",
+    "eslint": "^10.11.0",
     "tsup": "^8.5.1",
     "tsx": "^4.23.12",
-    "typescript": "^7.0.2"
+    "typescript": "^5.9.3"
   }
 }
