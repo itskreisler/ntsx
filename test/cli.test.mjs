@@ -300,6 +300,96 @@ test('example file 20: 20-jsonwebtoken.ts', () => {
   assert.match(out, /20-jsonwebtoken: function/)
 })
 
+test('complex inline stack 01: express + axios + cors + multer + zod', () => {
+  const out = runCliWithRetry([
+    'run',
+    '--with', 'express',
+    '--with', 'axios',
+    '--with', 'cors',
+    '--with', 'multer',
+    '--with', 'zod',
+    '-q',
+    '-e',
+    "import express from 'express'; import axios from 'axios'; import cors from 'cors'; import multer from 'multer'; import { z } from 'zod'; console.log('stack-ok', typeof express, typeof axios.get, typeof cors, typeof multer, typeof z)"
+  ])
+  assert.match(out, /stack-ok function function function function object/)
+})
+
+test('complex inline stack 02: hono + jose', () => {
+  const out = runCliWithRetry([
+    'run',
+    '--with', 'hono',
+    '--with', 'jose',
+    '-q',
+    '-e',
+    "import { Hono } from 'hono'; import { SignJWT } from 'jose'; console.log('hono-jose-ok', typeof Hono, typeof SignJWT)"
+  ])
+  assert.match(out, /hono-jose-ok function function/)
+})
+
+test('complex inline stack 03: axios + otpauth + qrcode', () => {
+  const out = runCliWithRetry([
+    'run',
+    '--with', 'axios',
+    '--with', 'otpauth',
+    '--with', 'qrcode',
+    '-q',
+    '-e',
+    "import axios from 'axios'; import OTPAuth from 'otpauth'; import QRCode from 'qrcode'; const secret = OTPAuth.Secret.fromBase32('JBSWY3DPEHPK3PXP'); const totp = new OTPAuth.TOTP({ issuer: 'ntsx', label: 'test', secret }); console.log('totp-qr-ok', typeof totp.generate, typeof QRCode.toDataURL)"
+  ])
+  assert.match(out, /totp-qr-ok function function/)
+})
+
+test('example file 21: 21-express-stack.ts', () => {
+  const out = runCliWithRetry(['run', '--with', 'express', '--with', 'axios', '--with', 'cors', '--with', 'multer', '--with', 'zod', '-q', 'examples/21-express-stack.ts'])
+  assert.match(out, /express-stack module initialized/)
+})
+
+test('example file 22: 22-hono-jwt.ts', () => {
+  const out = runCliWithRetry(['run', '--with', 'hono', '--with', '@hono/node-server', '--with', 'jose', '-q', 'examples/22-hono-jwt.ts'])
+  assert.match(out, /hono-jwt module initialized/)
+})
+
+test('example file 23: 23-otpauth-qr.ts', () => {
+  const out = runCliWithRetry(['run', '--with', 'axios', '--with', 'otpauth', '--with', 'qrcode', '-q', 'examples/23-otpauth-qr.ts'])
+  assert.match(out, /totp code:.*qr generated:/s)
+})
+
+test('argv2object pass-through 01: --name=Kreisler archivo.txt --debug', () => {
+  const out = runCliWithRetry(['run', '--with', 'argv2object', '-q', 'examples/24-argv.ts', '--name=Kreisler', 'archivo.txt', '--debug'])
+  const parsed = JSON.parse(out.trim())
+  assert.match(parsed.error, /Unix-style format/)
+})
+
+test('argv2object pass-through 02: -h --help --name=Kreisler --is-admin', () => {
+  const out = runCliWithRetry(['run', '--with', 'argv2object', '-q', 'examples/24-argv.ts', '-h', '--help', '--name=Kreisler', '--is-admin'])
+  const parsed = JSON.parse(out.trim())
+  assert.equal(parsed.name, 'Kreisler')
+  assert.equal(parsed.is_admin, true)
+  assert.equal(parsed.h, true)
+  assert.equal(parsed.help, true)
+})
+
+test('argv2object pass-through 03: --name=Kreisler', () => {
+  const out = runCliWithRetry(['run', '--with', 'argv2object', 'examples/24-argv.ts', '--name=Kreisler'])
+  const parsed = JSON.parse(out.trim())
+  assert.equal(parsed.name, 'Kreisler')
+})
+
+test('argv2object pass-through 04: sin argumentos extras', () => {
+  const out = runCliWithRetry(['run', '--with', 'argv2object', 'examples/24-argv.ts'])
+  const parsed = JSON.parse(out.trim())
+  assert.match(parsed.error, /No command-line arguments/)
+})
+
+test('argv2object pass-through 05: --name=Kreisler --age=25 --debug', () => {
+  const out = runCliWithRetry(['run', '--with', 'argv2object', 'examples/24-argv.ts', '--name=Kreisler', '--age=25', '--debug'])
+  const parsed = JSON.parse(out.trim())
+  assert.equal(parsed.name, 'Kreisler')
+  assert.equal(parsed.age, 25)
+  assert.equal(parsed.debug, true)
+})
+
 // ==========================================
 // SECTION 3: SYSTEM RESILIENCE & EDGE CASES
 // ==========================================
