@@ -231,6 +231,7 @@ async function writePackageJson(dir: string, withList: string[]): Promise<void> 
   }
   const packageJson = {
     name: 'ntsx-cache-' + depsHash(withList),
+    type: 'module',
     private: true,
     dependencies,
   }
