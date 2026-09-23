@@ -1,5 +1,6 @@
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { spawn, spawnSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync, symlinkSync, readlinkSync, rmSync, lstatSync } from 'node:fs'
 import os from 'node:os'
@@ -233,6 +234,41 @@ test('symlink huerfano hacia el cache se autocura (crash previo)', () => {
   symlinkSync(path.join(testHome, '.cache', 'ntsx', 'ficticio-que-no-existe'), linkPath, 'dir')
   runCliWithRetry(['run', '--with', 'left-pad', '-q', '-e', 'console.log("ok")'], { cwd: dir })
   assert.ok(!existsSync(linkPath), 'el symlink huérfano se descarta (fresh): no debe quedar')
+})
+
+test('lock: un run concurrente aborta y se libera al terminar', async () => {
+  const dir = sandbox()
+  const a = spawnCliAsync(['run', '--with', 'is-odd', '-q', '-e', 'await new Promise(() => {})'], { cwd: dir })
+  try {
+    // A ocupado y con el lock (stash hecho → symlink)
+    await waitFor(() => lstatSync(path.join(dir, 'node_modules')).isSymbolicLink())
+
+    // B: mismo targetDir → aborta sin romper el symlink de A
+    const b = runCliErr(['run', '--with', 'left-pad', '-q', '-e', 'console.log("b")'], { cwd: dir })
+    assert.notEqual(b.code, 0)
+    assert.match(b.stderr, /otro ntsx ya está corriendo/)
+    assert.ok(lstatSync(path.join(dir, 'node_modules')).isSymbolicLink(), 'A sigue en su sitio')
+
+    a.kill('SIGTERM')
+    const code = await new Promise((resolve) => a.on('close', resolve))
+    assert.equal(code, 143)
+
+    // lock liberado: ahora sí corre normal
+    const out = runCliWithRetry(['run', '--with', 'left-pad', '-q', '-e', 'console.log("b2")'], { cwd: dir })
+    assert.match(out, /b2/)
+  } finally {
+    if (a.exitCode === null) a.kill('SIGKILL')
+  }
+})
+
+test('lock huerfano (pid muerto) se limpia y el run procede', () => {
+  const dir = sandbox()
+  const wsHash = createHash('sha256').update(path.resolve(dir)).digest('hex').slice(0, 16)
+  const lockDir = path.join(testHome, '.cache', 'ntsx', wsHash)
+  mkdirSync(lockDir, { recursive: true })
+  writeFileSync(path.join(lockDir, 'run.lock'), '4194303\n') // pid máximo de Linux, no existe
+  const out = runCliWithRetry(['run', '--with', 'left-pad', '-q', '-e', 'console.log("stale-ok")'], { cwd: dir })
+  assert.match(out, /stale-ok/)
 })
 
 // ---------- cache (destructivo al final) ----------

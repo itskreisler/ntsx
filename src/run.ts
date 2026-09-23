@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { statSync } from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
-import { prepareCache, restoreNodeModules, type NodeModulesStash } from './cache.js'
+import { prepareCache, restoreNodeModules, acquireRunLock, type NodeModulesStash } from './cache.js'
 
 export interface RunOptions {
   withList: string[]
@@ -93,10 +93,15 @@ export async function run(opts: RunOptions): Promise<number> {
 
   // Acciones temporales sobre el node_modules del target (restaurar al salir)
   let stash: NodeModulesStash | null = null
+  let releaseLock: (() => Promise<void>) | null = null
 
   try {
     // 1. Bajar deps efímeras + symlink (solo si hay --with)
     if (parsed.withList.length > 0) {
+      // Lock por targetDir: evita que dos runs concurrentes compitan por el
+      // stash/symlink/restore del mismo node_modules.
+      releaseLock = await acquireRunLock(targetDir)
+      if (parsed.debug) process.stderr.write(`ntsx: [debug] run lock adquirido en ${targetDir}\n`)
       const prepped = await prepareCache(parsed.withList, targetDir, {
         quiet: parsed.quiet,
         npmArgs: splitArgs(parsed.npmArgs),
@@ -193,5 +198,6 @@ export async function run(opts: RunOptions): Promise<number> {
       if (parsed.debug) process.stderr.write(`ntsx: [debug] restore node_modules (${stash.kind})\n`)
       await restoreNodeModules(path.join(targetDir, 'node_modules'), stash)
     }
+    await releaseLock?.()
   }
 }

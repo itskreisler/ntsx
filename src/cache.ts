@@ -40,6 +40,60 @@ export function cacheKey(withList: string[], npmArgs: string[]): string {
   return shortHash([depsHash(withList), ...npmArgs].join('\u0000'))
 }
 
+/** Ruta del lock de run para un targetDir (dentro del caché, no ensucia el proyecto). */
+function lockPathFor(targetDir: string): string {
+  return path.join(CACHE_ROOT, workspaceHash(targetDir), 'run.lock')
+}
+
+/**
+ * Lock no-bloqueante por targetDir: dos ntsx run concurrentes sobre el mismo
+ * directorio compiten por el stash/symlink/restore y se rompen; aquí el segundo
+ * aborta con mensaje claro. Locks huérfanos (PID muerto) se recuperan.
+ * Devuelve una función de liberación idempotente.
+ */
+export async function acquireRunLock(targetDir: string): Promise<() => Promise<void>> {
+  const lockPath = lockPathFor(targetDir)
+  await fs.mkdir(path.dirname(lockPath), { recursive: true })
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let fd: fs.FileHandle | null = null
+    try {
+      fd = await fs.open(lockPath, 'wx')
+      await fd.writeFile(`${process.pid}\n`)
+      let closed = false
+      return async () => {
+        if (closed) return
+        closed = true
+        await fd?.close().catch(() => {})
+        await fs.unlink(lockPath).catch(() => {})
+      }
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      if (code !== 'EEXIST') throw err
+      // Hay un lock: si su dueño sigue vivo → aborta; si no → stale, limpiar y reintentar
+      const owner = (await fs.readFile(lockPath, 'utf8').catch(() => '')).trim()
+      if (isPidAlive(Number(owner))) {
+        throw new Error(
+          `otro ntsx ya está corriendo en este directorio (pid ${owner}). Espera a que termine o elimina ${lockPath}`
+        )
+      }
+      await fs.unlink(lockPath).catch(() => {})
+    }
+  }
+  throw new Error(`no se pudo adquirir el run lock: ${lockPath}`)
+}
+
+/** ¿El PID corresponde a un proceso vivo? (ESRCH=muerto, EPERM=vivo sin permiso de señal) */
+function isPidAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (err) {
+    return (err as NodeJS.ErrnoException).code === 'EPERM'
+  }
+}
+
 /** Cache aisla por workspace (proyecto) y por conjunto de deps + flags npm */
 export function cacheDirFor(workspaceDir: string, withList: string[], npmArgs: string[] = []): string {
   return path.join(CACHE_ROOT, workspaceHash(workspaceDir), cacheKey(withList, npmArgs))
