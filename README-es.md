@@ -86,6 +86,18 @@ ntsx run --with express examples/express-api.ts
 
 # ⚡️ API con Hono (+ servidor nativo de node)
 ntsx run --with @hono/node-server --with hono examples/hono-api.ts
+
+# 🛠️ Stacks complejos (Express + Axios + CORS + Multer + Zod)
+ntsx run --with express --with axios --with cors --with multer --with zod examples/21-express-stack.ts
+
+# 🔐 Autenticación JWT con Hono + JOSE
+ntsx run --with hono --with @hono/node-server --with jose examples/22-hono-jwt.ts
+
+# 🔑 Generador TOTP + Código QR (Axios + OTPAuth + QRCode)
+ntsx run --with axios --with otpauth --with qrcode examples/23-otpauth-qr.ts
+
+# 🎯 Argumentos pasados al script
+ntsx run --with argv2object examples/24-argv.ts --name=Kreisler archivo.txt --debug
 ```
 
 ### Servidores de verdad: `ntsx` + pm2
@@ -179,7 +191,7 @@ npm link                    # opcional: `ntsx` en tu PATH
 
 - TypeScript + Commander (CLI) + zod (validación)
 - `tsup` → bundle autosuficiente (`commander`, `zod` incluidos en `dist`)
-- Tests con `node:test` (24/24 ✅)
+- Tests con `node:test` (63/63 ✅)
 
 ---
 

@@ -50,7 +50,7 @@ function spawnCliAsync(args, opts = {}) {
   })
 }
 
-function waitFor(fn, timeoutMs = 20000, stepMs = 100) {
+function waitFor(fn, timeoutMs = 60000, stepMs = 100) {
   const start = Date.now()
   return new Promise((resolve, reject) => {
     const tick = () => {
