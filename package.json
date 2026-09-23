@@ -32,7 +32,7 @@
     "build": "tsup",
     "dev": "tsx src/index.ts -- --help",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test test/cli.test.mjs",
+    "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
