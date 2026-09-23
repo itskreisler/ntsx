@@ -212,14 +212,10 @@ export async function resolveNodeBinary(version?: string): Promise<string> {
     return cachedBin
   }
 
-  try {
-    const fullVer = await resolveLatestNodeVersion(version)
-    if (fullVer) {
-      return await downloadNodeRelease(fullVer)
-    }
-  } catch {
-    // Network or download error fallback
+  const fullVer = await resolveLatestNodeVersion(version)
+  if (fullVer) {
+    return await downloadNodeRelease(fullVer)
   }
 
-  return process.execPath
+  throw new Error(`Unable to resolve or download Node.js version "${version}"`)
 }
