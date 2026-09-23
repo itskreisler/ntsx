@@ -115,3 +115,12 @@ test('eval pass-through 05: sin args extra (argv vacío)', () => {
   ])
   assert.deepEqual(JSON.parse(out.trim()), [])
 })
+
+test('acceptance criteria: argument forwarding with -- (-h --name=Kreisler --is-admin)', () => {
+  const out = runCliWithRetry([
+    'run', '-e',
+    'console.log(process.argv.slice(1))',
+    '--', '-h', '--name=Kreisler', '--is-admin',
+  ])
+  assert.equal(out.trim(), "[ '-h', '--name=Kreisler', '--is-admin' ]")
+})
