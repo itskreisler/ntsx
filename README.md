@@ -183,7 +183,7 @@ npm link                    # optional: `ntsx` in your PATH
 
 - TypeScript + Commander (CLI) + zod (validation)
 - `tsup` → self-contained bundle (`commander`, `zod` included in `dist`)
-- Tests with `node:test` (22/22 ✅)
+- Tests with `node:test` (24/24 ✅)
 
 ---
 
