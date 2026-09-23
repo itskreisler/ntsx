@@ -136,16 +136,45 @@ export function cacheDir(): string {
 }
 
 /**
- * Prunes empty or unreferenced cache workspaces.
+ * Prunes empty workspace folders and temporary backup/lock artifacts from cache.
  *
  * @returns A promise resolving to the clean cache operation result.
  */
 export async function pruneCache(): Promise<CleanCacheResult> {
-  const stats = await cacheStats()
-  if (!stats.exists) {
+  const initialStats = await cacheStats()
+  if (!initialStats.exists) {
     return { cleared: false, sizeFreed: 0 }
   }
-  return { cleared: true, sizeFreed: 0 }
+
+  let freed = 0
+  try {
+    const workspaceEntries = await fs.readdir(CACHE_ROOT, { withFileTypes: true })
+    for (const ws of workspaceEntries) {
+      if (!ws.isDirectory()) continue
+      const wsPath = path.join(CACHE_ROOT, ws.name)
+      const subEntries = await fs.readdir(wsPath, { withFileTypes: true })
+
+      // Remove stale lock files or temporary backup directories in workspace
+      for (const sub of subEntries) {
+        if (sub.name.endsWith('.bak') || sub.name === 'run.lock') {
+          const itemPath = path.join(wsPath, sub.name)
+          const sz = await dirSize(itemPath)
+          await fs.rm(itemPath, { recursive: true, force: true }).catch(() => {})
+          freed += sz
+        }
+      }
+
+      // If workspace directory is empty after cleaning, remove it
+      const remaining = await fs.readdir(wsPath)
+      if (remaining.length === 0) {
+        await fs.rmdir(wsPath).catch(() => {})
+      }
+    }
+  } catch {
+    // Permission or read error
+  }
+
+  return { cleared: true, sizeFreed: freed }
 }
 
 export { fmtBytes }
