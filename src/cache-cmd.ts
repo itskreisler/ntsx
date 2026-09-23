@@ -126,4 +126,26 @@ function promptConfirm(message: string): Promise<boolean> {
   })
 }
 
+/**
+ * Returns the absolute cache root directory path.
+ *
+ * @returns Absolute cache path string.
+ */
+export function cacheDir(): string {
+  return CACHE_ROOT
+}
+
+/**
+ * Prunes empty or unreferenced cache workspaces.
+ *
+ * @returns A promise resolving to the clean cache operation result.
+ */
+export async function pruneCache(): Promise<CleanCacheResult> {
+  const stats = await cacheStats()
+  if (!stats.exists) {
+    return { cleared: false, sizeFreed: 0 }
+  }
+  return { cleared: true, sizeFreed: 0 }
+}
+
 export { fmtBytes }

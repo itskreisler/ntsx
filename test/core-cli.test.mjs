@@ -37,10 +37,9 @@ test('core CLI: --with con spec inválido devuelve error limpio', () => {
   assert.match(stderr, /Invalid package spec/)
 })
 
-test('core CLI: --node reservado muestra nota en stderr', () => {
-  const { stderr, stdout } = runCliErr(['run', '--node', '22', '-e', 'console.log("node-reserved")'])
+test('core CLI: --node ejecuta el script', () => {
+  const { stdout } = runCliErr(['run', '--node', '22', '-e', 'console.log("node-reserved")'])
   assert.equal(stdout.trim(), 'node-reserved')
-  assert.match(stderr, /--node is reserved and currently ignored/)
 })
 
 test('core CLI: cache stats funciona', () => {
