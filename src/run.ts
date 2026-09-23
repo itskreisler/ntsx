@@ -154,23 +154,31 @@ export async function run(opts: RunOptions): Promise<number> {
 
     if (isTs) {
       const runnerFlags = splitArgs(parsed.tsxArgs)
+      const withEval = (base: string[]): string[] =>
+        base.concat(parsed.scriptArgs.length > 0 ? ['--', ...parsed.scriptArgs] : parsed.scriptArgs)
       const tsxBin = which('tsx')
       if (tsxBin) {
         cmd = tsxBin
         args = isEval
-          ? [...runnerFlags, '-e', parsed.evalCode as string, ...parsed.scriptArgs]
+          ? withEval([...runnerFlags, '-e', parsed.evalCode as string])
           : [...runnerFlags, scriptPath as string, ...parsed.scriptArgs]
       } else {
         cmd = which('npx') ?? 'npx'
         args = isEval
-          ? ['-y', 'tsx', ...runnerFlags, '-e', parsed.evalCode as string, ...parsed.scriptArgs]
+          ? withEval(['-y', 'tsx', ...runnerFlags, '-e', parsed.evalCode as string])
           : ['-y', 'tsx', ...runnerFlags, scriptPath as string, ...parsed.scriptArgs]
       }
     } else {
       const runnerFlags = splitArgs(parsed.nodeArgs)
       cmd = process.execPath
       args = isEval
-        ? [...runnerFlags, '--input-type=module', '-e', parsed.evalCode as string, ...parsed.scriptArgs]
+        ? [
+            ...runnerFlags,
+            '--input-type=module',
+            '-e',
+            parsed.evalCode as string,
+            ...(parsed.scriptArgs.length > 0 ? ['--', ...parsed.scriptArgs] : []),
+          ]
         : [...runnerFlags, scriptPath as string, ...parsed.scriptArgs]
     }
 

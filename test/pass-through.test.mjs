@@ -66,3 +66,52 @@ test('argv2object + chalk inline multi-package pass-through', () => {
   assert.equal(parsed.h, true)
   assert.equal(parsed.help, true)
 })
+
+test('eval pass-through 01: flags con -- (--name=Kreisler -h --help --is-admin)', () => {
+  const out = runCliWithRetry([
+    'run', '--with', 'chalk', '-q', '-e',
+    "import chalk from 'chalk'; console.log(chalk.green(JSON.stringify(process.argv.slice(1))))",
+    '--', '--name=Kreisler', '-h', '--help', '--is-admin',
+  ])
+  assert.deepEqual(JSON.parse(out.trim()), ['--name=Kreisler', '-h', '--help', '--is-admin'])
+})
+
+test('eval pass-through 02: argv2object con -- + flags', () => {
+  const out = runCliWithRetry([
+    'run', '--with', 'argv2object', '-q', '-e',
+    "import a from 'argv2object'; console.log(JSON.stringify({ argv: process.argv.slice(1), parsed: a(true) }))",
+    '--', '-h', '--help', '--name=Kreisler', '--is-admin',
+  ])
+  const { argv, parsed } = JSON.parse(out.trim())
+  assert.deepEqual(argv, ['-h', '--help', '--name=Kreisler', '--is-admin'])
+  assert.equal(parsed.name, 'Kreisler')
+  assert.equal(parsed.is_admin, true)
+  assert.equal(parsed.help, true)
+  assert.match(out.trim(), /"help":true/)
+})
+
+test('eval pass-through 03: args simples sin -- (arg1 archivo.txt)', () => {
+  const out = runCliWithRetry([
+    'run', '--with', 'chalk', '-q', '-e',
+    "import chalk from 'chalk'; console.log(chalk.cyan(JSON.stringify(process.argv.slice(1))))",
+    'arg1', 'archivo.txt',
+  ])
+  assert.deepEqual(JSON.parse(out.trim()), ['arg1', 'archivo.txt'])
+})
+
+test('eval pass-through 04: node runtime con -- + flags (-h --name=Kreisler)', () => {
+  const out = runCliWithRetry([
+    'run', '--with', 'chalk', '-q', '--eval-runtime', 'node', '-e',
+    "import chalk from 'chalk'; console.log(chalk.blue(JSON.stringify(process.argv.slice(1))))",
+    '--', '-h', '--name=Kreisler',
+  ])
+  assert.deepEqual(JSON.parse(out.trim()), ['-h', '--name=Kreisler'])
+})
+
+test('eval pass-through 05: sin args extra (argv vacío)', () => {
+  const out = runCliWithRetry([
+    'run', '--with', 'chalk', '-q', '-e',
+    "import chalk from 'chalk'; console.log(chalk.yellow(JSON.stringify(process.argv.slice(1))))",
+  ])
+  assert.deepEqual(JSON.parse(out.trim()), [])
+})

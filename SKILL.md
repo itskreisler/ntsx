@@ -18,7 +18,7 @@ ntsx run [options] [script] [scriptArgs...]
 
 #### Flags:
 - `-w, --with <pkg>`: Ephemeral dependency specifier (`pkg`, `pkg@version`, `@scope/pkg@version`). Repeatable.
-- `-e, --eval <code>`: Evaluates inline code.
+- `-e, --eval <code>`: Evaluates inline code. Script arguments go **after** a `--` separator (like `node -e` / `tsx -e`), e.g. `ntsx run -e "<code>" -- -h --name=Kreisler`. Plain args (no leading `-`) can also be passed directly.
 - `--eval-runtime <tsx|node>`: Runtime environment for inline code evaluation (default: `tsx`).
 - `--tsx-args <flags>`: Options forwarded to `tsx` before script execution.
 - `--node-args <flags>`: Options forwarded to `node` before script execution.
@@ -67,6 +67,6 @@ Manages the isolated dependency cache (`~/.cache/ntsx`).
 ---
 
 ## 🧪 Testing & Verification
-- Unit & E2E CLI tests use native Node test runner: `node --test test/cli.test.mjs`
-- Test command: `npm test` (compiles with `tsup` then executes test suite).
-- All 63 test cases pass cleanly.
+- Unit & E2E CLI tests use native Node test runner with **pnpm**.
+- Test command: `pnpm test` (compiles with `tsup` then executes test suite).
+- CI runs the full suite on Node 22 and 24 (`.github/workflows/ci.yml`).

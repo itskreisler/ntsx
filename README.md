@@ -73,6 +73,15 @@ ntsx run --tsx-args "--tsconfig=tsconfig.custom.json" src/main.ts --verbose
 #                       ↑ runner flags                    ↑ script flags
 ```
 
+**Eval args with `-e`**: inline code uses the classic `node -e` / `tsx -e` convention — script
+arguments go **after** a `--` separator (flags like `-h` or `--name=x` are otherwise claimed by the
+CLI or by node itself):
+
+```bash
+ntsx run --with argv2object -e "import a from 'argv2object'; console.log(a())" -- -h --name=Kreisler --is-admin
+#                                                                          ↑ script args
+```
+
 ## Real examples (tested ✅)
 
 ```bash
@@ -102,6 +111,9 @@ ntsx run --with axios --with otpauth --with qrcode examples/23-otpauth-qr.ts
 
 # 🎯 Script argument pass-through
 ntsx run --with argv2object examples/24-argv.ts --name=Kreisler archivo.txt --debug
+
+# 🎯 Inline eval + script args (use -- to separate)
+ntsx run --with argv2object -e "import a from 'argv2object'; console.log(a(true))" -- -h --help --name=Kreisler --is-admin
 ```
 
 ### Long-running servers: `ntsx` + pm2
