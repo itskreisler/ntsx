@@ -58,7 +58,7 @@ program
   .passThroughOptions()
   .option('-w, --with <pkg>', 'ephemeral dependency (pkg, pkg@version, @scope/pkg@version). Repeatable', collect, [])
   .option('-e, --eval <code>', 'evaluate inline code (like node -e)')
-  .option('--eval-runtime <tsx|node>', 'runtime for inline eval (default: tsx)')
+  .option('--eval-runtime <tsx|node>', 'runtime for inline eval (default: tsx)', 'tsx')
   .option('--tsx-args <flags>', 'flags forwarded to tsx before the script (.ts/tsx/eval runs). Repeatable', collect, [])
   .option('--node-args <flags>', 'flags forwarded to node before the script (.js/.mjs runs). Repeatable', collect, [])
   .option('--npm-args <flags>', 'flags forwarded to the ephemeral npm install. Repeatable', collect, [])
@@ -70,11 +70,13 @@ program
   .action(async (script: string | undefined, scriptArgs: string[], options: { with?: string[]; eval?: string; evalRuntime?: string; tsxArgs?: string[]; nodeArgs?: string[]; npmArgs?: string[]; node?: string; quiet?: boolean; debug?: boolean }) => {
     noteReservedFlags(options)
     await guard(async () => {
+      const isEval = options.eval !== undefined
+      const effectiveScriptArgs = isEval && script ? [script, ...scriptArgs] : scriptArgs
       const exitCode = await run({
         withList: options.with ?? [],
-        script: script ?? null,
+        script: isEval ? null : (script ?? null),
         evalCode: options.eval,
-        scriptArgs,
+        scriptArgs: effectiveScriptArgs,
         quiet: options.quiet ?? false,
         evalRuntime: options.evalRuntime as 'tsx' | 'node' | undefined,
         tsxArgs: options.tsxArgs ?? [],

@@ -38,10 +38,13 @@ const runOptionsSchema = z.object({
   debug: z.boolean().default(false),
 })
 
-/** Divide cada string de args (puede traer espacios) en tokens sueltos. */
+/** Divide cada string de args en tokens respetando comillas y espacios. */
 function splitArgs(raws: string[]): string[] {
   const out: string[] = []
-  for (const raw of raws) out.push(...raw.split(/\s+/).filter(Boolean))
+  for (const raw of raws) {
+    const matches = raw.match(/"[^"]*"|'[^']*'|\S+/g) ?? []
+    out.push(...matches.map((m) => m.replace(/^(['"])(.*)\1$/, '$2')))
+  }
   return out
 }
 

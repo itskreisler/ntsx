@@ -16,17 +16,21 @@ export async function cacheStats(): Promise<{ exists: boolean; workspaceCount: n
 
 async function dirSize(dir: string): Promise<number> {
   let total = 0
-  const entries = await fs.readdir(dir, { withFileTypes: true })
-  for (const e of entries) {
-    const full = path.join(dir, e.name)
-    if (e.isDirectory()) total += await dirSize(full)
-    else if (e.isFile()) {
-      try {
-        total += (await fs.stat(full)).size
-      } catch {
-        // sin permiso / roto
+  try {
+    const entries = await fs.readdir(dir, { recursive: true, withFileTypes: true })
+    for (const e of entries) {
+      if (e.isFile()) {
+        const parent = (e as unknown as { parentPath?: string; path?: string }).parentPath ?? (e as unknown as { path?: string }).path ?? dir
+        const full = path.join(parent, e.name)
+        try {
+          total += (await fs.stat(full)).size
+        } catch {
+          // sin permiso / roto
+        }
       }
     }
+  } catch {
+    // dir no existe / sin permiso
   }
   return total
 }

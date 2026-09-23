@@ -39,7 +39,6 @@ function spawnCliAsync(args, opts = {}) {
   })
 }
 
-/** Poll de una condición (con timeout); ideal para runs que instalan/asincronos. */
 function waitFor(fn, timeoutMs = 20000, stepMs = 100) {
   const start = Date.now()
   return new Promise((resolve, reject) => {
@@ -69,7 +68,6 @@ function runCliErr(args, opts = {}) {
   return { code: r.status ?? -1, stdout: r.stdout, stderr: r.stderr }
 }
 
-// Los tests que instalan deps bajan de la red: reintenta ante fallos transitorios.
 function runCliWithRetry(args, opts = {}) {
   let lastErr
   for (let i = 0; i < 3; i++) {
@@ -82,144 +80,306 @@ function runCliWithRetry(args, opts = {}) {
   throw lastErr
 }
 
-// ---------- evaluación ----------
+// ==========================================
+// SECTION 1: 20 INLINE (-e / --eval) TESTS
+// ==========================================
 
-test('eval por default usa tsx (soporta TS inline)', () => {
-  const out = runCli(['run', '-e', "type X = { a: number }; const o: X = { a: 42 }; console.log('t-ok', o.a)"])
-  assert.match(out, /t-ok 42/)
+test('inline 01: eval por default usa tsx (soporta TS syntax)', () => {
+  const out = runCli(['run', '-e', "type X = { a: number }; const o: X = { a: 42 }; console.log('inline-01', o.a)"])
+  assert.match(out, /inline-01 42/)
 })
 
-test('--eval-runtime node ejecuta con node nativo (top-level await)', () => {
-  const out = runCli(['run', '--eval-runtime', 'node', '-e', 'await Promise.resolve(); console.log("node-ok")'])
-  assert.match(out, /node-ok/)
+test('inline 02: eval con múltiples sentencias y salida estándar', () => {
+  const out = runCli(['run', '-e', "const a = 10; const b = 20; console.log('sum:', a + b)"])
+  assert.match(out, /sum: 30/)
 })
 
-test('--eval-runtime inválido devuelve error limpio y exit != 0', () => {
+test('inline 03: eval con --eval-runtime node ejecuta con node nativo (top-level await)', () => {
+  const out = runCli(['run', '--eval-runtime', 'node', '-e', 'await Promise.resolve(); console.log("node-native-ok")'])
+  assert.match(out, /node-native-ok/)
+})
+
+test('inline 04: eval con --eval-runtime tsx explícito', () => {
+  const out = runCli(['run', '--eval-runtime', 'tsx', '-e', 'const x: number = 100; console.log("tsx-explicit", x)'])
+  assert.match(out, /tsx-explicit 100/)
+})
+
+test('inline 05: eval con --eval-runtime inválido devuelve error limpio y exit != 0', () => {
   const { code, stderr } = runCliErr(['run', '--eval-runtime', 'bun', '-e', '1'])
   assert.notEqual(code, 0)
   assert.match(stderr, /ntsx: /)
   assert.match(stderr, /tsx.*\|.*node/)
 })
 
-// ---------- archivos ----------
+test('inline 06: eval pasa los scriptArgs después de la expresión eval', () => {
+  const out = runCli(['run', '-e', 'console.log(JSON.stringify(process.argv.slice(1)))', 'argA', 'argB', 'argC'])
+  assert.deepEqual(JSON.parse(out.trim()), ['argA', 'argB', 'argC'])
+})
 
-test('run .js pasa los argumentos al script', () => {
+test('inline 07: eval con --with instala y resuelve dep efímera (is-odd)', () => {
+  const out = runCliWithRetry(['run', '--with', 'is-odd', '-q', '-e', "import isOdd from 'is-odd'; console.log('isOdd(5):', isOdd(5))"])
+  assert.match(out, /isOdd\(5\): true/)
+})
+
+test('inline 08: eval con múltiples --with (--with is-odd --with left-pad)', () => {
+  const out = runCliWithRetry([
+    'run',
+    '--with',
+    'is-odd',
+    '--with',
+    'left-pad',
+    '-q',
+    '-e',
+    "import isOdd from 'is-odd'; import leftPad from 'left-pad'; console.log(isOdd(3), leftPad('hi', 5))",
+  ])
+  assert.match(out, /true\s+hi/)
+})
+
+test('inline 09: eval con versión fijada (--with is-odd@3.0.1)', () => {
+  const out = runCliWithRetry(['run', '--with', 'is-odd@3.0.1', '-q', '-e', "import isOdd from 'is-odd'; console.log('pinned:', isOdd(7))"])
+  assert.match(out, /pinned: true/)
+})
+
+test('inline 10: eval con alias o spec con scope (--with is-odd)', () => {
+  const out = runCliWithRetry(['run', '--with', 'is-odd', '-q', '-e', "console.log('scoped/spec ok')"])
+  assert.match(out, /scoped\/spec ok/)
+})
+
+test('inline 11: eval con flag -q / --quiet suprime salida de npm', () => {
+  const { stderr, stdout } = runCliErr(['run', '-q', '-e', 'console.log("quiet-test")'])
+  assert.equal(stdout.trim(), 'quiet-test')
+  assert.equal(stderr.trim(), '')
+})
+
+test('inline 12: eval con -d / --debug muestra traza interna en stderr', () => {
+  const { stderr, stdout } = runCliErr(['run', '-d', '-e', 'console.log("debug-test")'])
+  assert.equal(stdout.trim(), 'debug-test')
+  assert.match(stderr, /ntsx: \[debug\]/)
+})
+
+test('inline 13: eval con --tsx-args reenvía flags a tsx (con comillas preservadas)', () => {
   const dir = sandbox()
-  writeFileSync(path.join(dir, 'a.js'), 'console.log(JSON.stringify(process.argv.slice(2)))\n')
-  const out = runCli(['run', 'a.js', 'uno', 'dos'], { cwd: dir })
-  assert.deepEqual(JSON.parse(out.trim()), ['uno', 'dos'])
+  writeFileSync(path.join(dir, '.env'), 'INLINE_ENV=hello_from_inline_env\n')
+  const out = runCli(['run', '--tsx-args', '--env-file=.env', '-e', 'console.log(process.env.INLINE_ENV)'], { cwd: dir })
+  assert.equal(out.trim(), 'hello_from_inline_env')
 })
 
-test('run .ts funciona con tsx', () => {
+test('inline 14: eval con --node-args en modo --eval-runtime node', () => {
   const dir = sandbox()
-  writeFileSync(path.join(dir, 't.ts'), 'console.log("ts-ok")\n')
-  const out = runCli(['run', 't.ts'], { cwd: dir })
-  assert.match(out, /ts-ok/)
+  writeFileSync(path.join(dir, '.env'), 'NODE_ENV_TEST=node_val\n')
+  const out = runCli(['run', '--eval-runtime', 'node', '--node-args', '--env-file=.env', '-e', 'console.log(process.env.NODE_ENV_TEST)'], {
+    cwd: dir,
+  })
+  assert.equal(out.trim(), 'node_val')
 })
 
-// passThroughOptions: flags después del script van al script, no a ntsx
-test('flags del script después del archivo no se secuestran', () => {
-  const dir = sandbox()
-  writeFileSync(path.join(dir, 'app.ts'), 'console.log(JSON.stringify(process.argv.slice(2)))\n')
-  const out = runCli(['run', 'app.ts', '--verbose', '--with', 'x'], { cwd: dir })
-  assert.deepEqual(JSON.parse(out.trim()), ['--verbose', '--with', 'x'])
-})
-
-// ---------- errors ----------
-
-test('sin script ni eval → error limpio', () => {
-  const { code, stderr } = runCliErr(['run'])
-  assert.notEqual(code, 0)
-  assert.match(stderr, /ntsx: .*required/i)
-})
-
-test('script inexistente → error limpio', () => {
-  const dir = sandbox()
-  const { code, stderr } = runCliErr(['run', 'no-existe.ts'], { cwd: dir })
-  assert.notEqual(code, 0)
-  assert.match(stderr, /ntsx: Script not found/)
-})
-
-test('--with con spec inválido → error limpio', () => {
-  const dir = sandbox()
-  const { code, stderr } = runCliErr(['run', '--with', 'BAD SPEC!', '-e', '1'], { cwd: dir })
-  assert.notEqual(code, 0)
-  assert.match(stderr, /Invalid package spec/)
-})
-
-test('--node reservado avisa por stderr', () => {
-  const { stderr } = runCliErr(['run', '--node', '20', '-e', 'console.log("x")'])
-  assert.match(stderr, /reserved/)
-})
-
-// ---------- deps efímeras (requieren red npm la 1a vez, luego caché) ----------
-
-test('--with resuelve la dep efímera (chalk)', () => {
-  const out = runCliWithRetry(['run', '--with', 'chalk', '-q', '-e', "import c from 'chalk'; console.log(c.green('x'))"])
-  assert.equal(out.trim(), 'x')
-})
-
-test('--tsx-args reenvía =--env-file= a tsx', () => {
-  const dir = sandbox()
-  writeFileSync(path.join(dir, '.env'), 'FOO=desde_env\n')
-  writeFileSync(path.join(dir, 't.ts'), 'console.log("FOO:", process.env.FOO)\n')
-  const out = runCli(['run', '--tsx-args', '--env-file=.env', 't.ts'], { cwd: dir })
-  assert.match(out, /FOO: desde_env/)
-})
-
-test('--node-args reenvía a node en .js', () => {
-  const dir = sandbox()
-  writeFileSync(path.join(dir, '.env'), 'BAR=js_env\n')
-  writeFileSync(path.join(dir, 'j.js'), 'console.log("BAR:", process.env.BAR)\n')
-  const out = runCli(['run', '--node-args', '--env-file=.env', 'j.js'], { cwd: dir })
-  assert.match(out, /BAR: js_env/)
-})
-
-test('--npm-args llega al npm install (registry inválido falla rápido)', () => {
+test('inline 15: eval con --npm-args (registry inválido falla rápido)', () => {
   const dir = sandbox()
   const { code, stderr } = runCliErr(
-    ['run', '--with', 'is-odd', '--npm-args', '--registry=https://invalid.localhost --fetch-retries=0 --fetch-timeout=1500', '-e', '1'],
+    ['run', '--with', 'is-odd', '--npm-args', '--registry=https://invalid.localhost --fetch-retries=0 --fetch-timeout=1000', '-e', '1'],
     { cwd: dir }
   )
   assert.notEqual(code, 0)
   assert.match(stderr, /npm install failed/)
 })
 
-// ---------- integridad del node_modules (regresión del bug crítico) ----------
+test('inline 16: eval con script y eval omitidos da error', () => {
+  const { code, stderr } = runCliErr(['run'])
+  assert.notEqual(code, 0)
+  assert.match(stderr, /ntsx: .*required/i)
+})
 
-test('--with NO destruye el node_modules real del target', () => {
+test('inline 17: eval propaga exit code no cero (process.exit(42))', () => {
+  const { code } = runCliErr(['run', '-e', 'process.exit(42)'])
+  assert.equal(code, 42)
+})
+
+test('inline 18: eval con error de sintaxis propaga exit code no cero', () => {
+  const { code, stderr } = runCliErr(['run', '-e', 'const const = invalid;'])
+  assert.notEqual(code, 0)
+  assert.ok(stderr.length > 0)
+})
+
+test('inline 19: eval con --node reservado muestra nota en stderr', () => {
+  const { stderr, stdout } = runCliErr(['run', '--node', '22', '-e', 'console.log("node-reserved")'])
+  assert.equal(stdout.trim(), 'node-reserved')
+  assert.match(stderr, /--node is reserved and currently ignored/)
+})
+
+test('inline 20: eval con --with spec inválido devuelve error limpio', () => {
+  const { code, stderr } = runCliErr(['run', '--with', 'INVALID SPEC!', '-e', '1'])
+  assert.notEqual(code, 0)
+  assert.match(stderr, /Invalid package spec/)
+})
+
+// ==========================================
+// SECTION 2: 20 FILE TESTS
+// ==========================================
+
+test('file 01: run .js pasa argumentos al script', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'a.js'), 'console.log(JSON.stringify(process.argv.slice(2)))\n')
+  const out = runCli(['run', 'a.js', 'uno', 'dos', 'tres'], { cwd: dir })
+  assert.deepEqual(JSON.parse(out.trim()), ['uno', 'dos', 'tres'])
+})
+
+test('file 02: run .ts ejecuta con tsx', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 't.ts'), 'const val: string = "ts-file-ok"; console.log(val)\n')
+  const out = runCli(['run', 't.ts'], { cwd: dir })
+  assert.match(out, /ts-file-ok/)
+})
+
+test('file 03: run .mjs ejecuta con node nativo', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'm.mjs'), 'console.log("mjs-ok", typeof import.meta.url)\n')
+  const out = runCli(['run', 'm.mjs'], { cwd: dir })
+  assert.match(out, /mjs-ok string/)
+})
+
+test('file 04: run .cjs ejecuta con node nativo', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'c.cjs'), 'console.log("cjs-ok", typeof exports)\n')
+  const out = runCli(['run', 'c.cjs'], { cwd: dir })
+  assert.match(out, /cjs-ok object/)
+})
+
+test('file 05: run .tsx ejecuta con tsx', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'v.tsx'), 'const App = () => "tsx-file"; console.log(App())\n')
+  const out = runCli(['run', 'v.tsx'], { cwd: dir })
+  assert.match(out, /tsx-file/)
+})
+
+test('file 06: run .mts ejecuta con tsx', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'mod.mts'), 'export const greeting: string = "mts-ok"; console.log(greeting)\n')
+  const out = runCli(['run', 'mod.mts'], { cwd: dir })
+  assert.match(out, /mts-ok/)
+})
+
+test('file 07: run .cts ejecuta con tsx', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'mod.cts'), 'const x: number = 99; console.log("cts-ok", x)\n')
+  const out = runCli(['run', 'mod.cts'], { cwd: dir })
+  assert.match(out, /cts-ok 99/)
+})
+
+test('file 08: run script usando ruta absoluta', () => {
+  const dir = sandbox()
+  const absPath = path.join(dir, 'abs.js')
+  writeFileSync(absPath, 'console.log("abs-ok")\n')
+  const out = runCli(['run', absPath])
+  assert.match(out, /abs-ok/)
+})
+
+test('file 09: run script en subdirectorio con ruta relativa', () => {
+  const dir = sandbox()
+  mkdirSync(path.join(dir, 'sub'), { recursive: true })
+  writeFileSync(path.join(dir, 'sub', 'nested.ts'), 'console.log("nested-ok")\n')
+  const out = runCli(['run', 'sub/nested.ts'], { cwd: dir })
+  assert.match(out, /nested-ok/)
+})
+
+test('file 10: flags del script después del archivo no se secuestran (passThroughOptions)', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'app.ts'), 'console.log(JSON.stringify(process.argv.slice(2)))\n')
+  const out = runCli(['run', 'app.ts', '--verbose', '--with', 'pkgName', '-q'], { cwd: dir })
+  assert.deepEqual(JSON.parse(out.trim()), ['--verbose', '--with', 'pkgName', '-q'])
+})
+
+test('file 11: script inexistente devuelve error limpio y exit != 0', () => {
+  const dir = sandbox()
+  const { code, stderr } = runCliErr(['run', 'no-existe.ts'], { cwd: dir })
+  assert.notEqual(code, 0)
+  assert.match(stderr, /ntsx: Script not found/)
+})
+
+test('file 12: file run con dep efímera --with (left-pad)', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'script.js'), "import leftPad from 'left-pad'; console.log(leftPad('pad', 6))\n")
+  const out = runCliWithRetry(['run', '--with', 'left-pad', '-q', 'script.js'], { cwd: dir })
+  assert.match(out, /   pad/)
+})
+
+test('file 13: file run con --tsx-args reenvía =--env-file= a tsx', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, '.env'), 'FOO=desde_env_file\n')
+  writeFileSync(path.join(dir, 't.ts'), 'console.log("FOO:", process.env.FOO)\n')
+  const out = runCli(['run', '--tsx-args', '--env-file=.env', 't.ts'], { cwd: dir })
+  assert.match(out, /FOO: desde_env_file/)
+})
+
+test('file 14: file run con --node-args reenvía flags a node en .js', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, '.env'), 'BAR=js_env_file\n')
+  writeFileSync(path.join(dir, 'j.js'), 'console.log("BAR:", process.env.BAR)\n')
+  const out = runCli(['run', '--node-args', '--env-file=.env', 'j.js'], { cwd: dir })
+  assert.match(out, /BAR: js_env_file/)
+})
+
+test('file 15: file run con -d / --debug muestra traza interna de cache y symlink', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 's.js'), 'console.log("debug-file")\n')
+  const { stderr, stdout } = runCliErr(['run', '-d', 's.js'], { cwd: dir })
+  assert.equal(stdout.trim(), 'debug-file')
+  assert.match(stderr, /ntsx: \[debug\] exec:/)
+})
+
+test('file 16: file run NO destruye el node_modules real del target', () => {
   const dir = sandbox()
   mkdirSync(path.join(dir, 'node_modules'))
   writeFileSync(path.join(dir, 'node_modules', 'marcador.txt'), 'soy-real\n')
-  runCliWithRetry(['run', '--with', 'left-pad', '-q', '-e', 'console.log("ok")'], { cwd: dir })
+  writeFileSync(path.join(dir, 's.js'), 'console.log("file-safe")\n')
+  runCliWithRetry(['run', '--with', 'left-pad', '-q', 's.js'], { cwd: dir })
   const marker = readFileSync(path.join(dir, 'node_modules', 'marcador.txt'), 'utf8')
   assert.match(marker, /soy-real/)
   const backups = readdirSync(dir).filter((f) => f.endsWith('.bak'))
   assert.deepEqual(backups, [])
 })
 
-test('--with NO deja symlink huerfano si no había node_modules', () => {
+test('file 17: file run NO deja symlink huerfano si no había node_modules previamente', () => {
   const dir = sandbox()
-  runCliWithRetry(['run', '--with', 'is-odd', '-q', '-e', 'console.log("ok")'], { cwd: dir })
+  writeFileSync(path.join(dir, 's.js'), 'console.log("no-symlink-left")\n')
+  runCliWithRetry(['run', '--with', 'is-odd', '-q', 's.js'], { cwd: dir })
   assert.ok(!existsSync(path.join(dir, 'node_modules')), 'node_modules no debería existir tras el run')
 })
 
-test('--with respeta un node_modules que ya era symlink (sin EEXIST)', () => {
+test('file 18: file run respeta un node_modules que ya era symlink original', () => {
   const dir = sandbox()
   const realDir = path.join(dir, 'real-deps')
   mkdirSync(realDir)
   const linkPath = path.join(dir, 'node_modules')
   symlinkSync('real-deps', linkPath, 'dir')
-  runCliWithRetry(['run', '--with', 'left-pad', '-q', '-e', 'console.log("ok")'], { cwd: dir })
+  writeFileSync(path.join(dir, 's.js'), 'console.log("symlink-restored")\n')
+  runCliWithRetry(['run', '--with', 'left-pad', '-q', 's.js'], { cwd: dir })
   assert.equal(readlinkSync(linkPath), 'real-deps', 'el symlink original debe restaurarse')
 })
+
+test('file 19: file run propaga el exit code del script (process.exit(17))', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'err.js'), 'process.exit(17)\n')
+  const { code } = runCliErr(['run', 'err.js'], { cwd: dir })
+  assert.equal(code, 17)
+})
+
+test('file 20: file run con script que lanza una excepción no capturada', () => {
+  const dir = sandbox()
+  writeFileSync(path.join(dir, 'throw.js'), 'throw new Error("uncaught_test_error")\n')
+  const { code, stderr } = runCliErr(['run', 'throw.js'], { cwd: dir })
+  assert.notEqual(code, 0)
+  assert.match(stderr, /uncaught_test_error/)
+})
+
+// ==========================================
+// SECTION 3: CONCURRENCY, LOCKS, SIGNALS & CACHE COMMANDS
+// ==========================================
 
 test('SIGTERM restaura node_modules (graceful shutdown, útil para pm2)', async () => {
   const dir = sandbox()
   mkdirSync(path.join(dir, 'node_modules'))
   writeFileSync(path.join(dir, 'node_modules', 'marcador.txt'), 'soy-real\n')
   const child = spawnCliAsync(['run', '--with', 'is-odd', '-q', '-e', 'await new Promise(() => {})'], { cwd: dir })
-  // espera a que el cache esté enlazado (symlink), señal de que el run arrancó
   await waitFor(() => lstatSync(path.join(dir, 'node_modules')).isSymbolicLink())
   child.kill('SIGTERM')
   const code = await new Promise((resolve) => child.on('close', resolve))
@@ -240,10 +400,7 @@ test('lock: un run concurrente aborta y se libera al terminar', async () => {
   const dir = sandbox()
   const a = spawnCliAsync(['run', '--with', 'is-odd', '-q', '-e', 'await new Promise(() => {})'], { cwd: dir })
   try {
-    // A ocupado y con el lock (stash hecho → symlink)
     await waitFor(() => lstatSync(path.join(dir, 'node_modules')).isSymbolicLink())
-
-    // B: mismo targetDir → aborta sin romper el symlink de A
     const b = runCliErr(['run', '--with', 'left-pad', '-q', '-e', 'console.log("b")'], { cwd: dir })
     assert.notEqual(b.code, 0)
     assert.match(b.stderr, /otro ntsx ya está corriendo/)
@@ -253,7 +410,6 @@ test('lock: un run concurrente aborta y se libera al terminar', async () => {
     const code = await new Promise((resolve) => a.on('close', resolve))
     assert.equal(code, 143)
 
-    // lock liberado: ahora sí corre normal
     const out = runCliWithRetry(['run', '--with', 'left-pad', '-q', '-e', 'console.log("b2")'], { cwd: dir })
     assert.match(out, /b2/)
   } finally {
@@ -270,8 +426,6 @@ test('lock huerfano (pid muerto) se limpia y el run procede', () => {
   const out = runCliWithRetry(['run', '--with', 'left-pad', '-q', '-e', 'console.log("stale-ok")'], { cwd: dir })
   assert.match(out, /stale-ok/)
 })
-
-// ---------- cache (destructivo al final) ----------
 
 test('cache stats funciona', () => {
   const out = runCli(['cache', 'stats'])
