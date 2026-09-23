@@ -77,7 +77,13 @@ export async function getCachedNodeBinary(requested: string): Promise<string | n
  */
 export async function fetchNodeReleases(): Promise<NodeRelease[]> {
   try {
-    const res = await fetch('https://nodejs.org/dist/index.json')
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 5000)
+    const res = await fetch('https://nodejs.org/dist/index.json', {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'ntsx' },
+    })
+    clearTimeout(timer)
     if (!res.ok) return []
     return (await res.json()) as NodeRelease[]
   } catch {
@@ -140,7 +146,9 @@ export async function downloadNodeRelease(fullVersion: string): Promise<string> 
 
   try {
     process.stderr.write(`ntsx: downloading Node.js ${fullVersion} (${plat}-${arch})...\n`)
-    const res = await fetch(archiveUrl)
+    const res = await fetch(archiveUrl, {
+      headers: { 'User-Agent': 'ntsx' },
+    })
     if (!res.ok) {
       throw new Error(`Failed to fetch ${archiveUrl}: HTTP ${res.status}`)
     }

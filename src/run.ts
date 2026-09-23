@@ -215,9 +215,21 @@ export async function run(opts: RunOptions): Promise<number> {
       process.stderr.write(`ntsx: [debug] exec: ${cmd} ${shownArgs}\n`)
     }
 
+    const nodeBin = await resolveNodeBinary(effectiveNodeVersion)
+    const customNodeDir = effectiveNodeVersion && nodeBin !== process.execPath ? path.dirname(nodeBin) : null
+
+    if (!isTs) {
+      cmd = nodeBin
+    }
+
+    const spawnEnv: NodeJS.ProcessEnv = { ...process.env }
+    if (customNodeDir) {
+      spawnEnv.PATH = `${customNodeDir}${path.delimiter}${spawnEnv.PATH ?? ''}`
+    }
+
     const spawnOpts: { stdio: 'inherit'; env: NodeJS.ProcessEnv; shell?: boolean } = {
       stdio: 'inherit',
-      env: process.env,
+      env: spawnEnv,
     }
     if (process.platform === 'win32' && /\.cmd$/i.test(cmd)) spawnOpts.shell = true
     const child = spawn(cmd, args, spawnOpts)
