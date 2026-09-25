@@ -14,8 +14,16 @@ pub struct RunOptions {
 }
 
 pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
+    let dist_ntsx = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()))
+        .map(|p| p.join("dist").join("ntsx.js"))
+        .unwrap_or_else(|| std::path::PathBuf::from("dist/ntsx.js"));
+
     let mut cmd = Command::new("node");
-    cmd.arg("dist/ntsx.js").arg("run");
+    cmd.arg(dist_ntsx).arg("run");
 
     for w in opts.with_list {
         cmd.arg("--with").arg(w);

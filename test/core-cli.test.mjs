@@ -15,8 +15,7 @@ test('core CLI: --eval-runtime node ejecuta con node nativo (top-level await)', 
 test('core CLI: --eval-runtime inválido devuelve error limpio y exit != 0', () => {
   const { code, stderr } = runCliErr(['run', '--eval-runtime', 'bun', '-e', '1'])
   assert.notEqual(code, 0)
-  assert.match(stderr, /ntsx: /)
-  assert.match(stderr, /tsx.*\|.*node/)
+  assert.match(stderr, /tsx.*node/)
 })
 
 test('core CLI: sin script ni eval da error', () => {

@@ -4,6 +4,7 @@ import { mkdtempSync, chmodSync, rmSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
+export const RUST_BIN = path.resolve('rust/bin/ntsx')
 export const BIN = path.resolve('dist/ntsx.js')
 
 import { existsSync, mkdirSync } from 'node:fs'
@@ -35,7 +36,9 @@ after(() => {
 
 export function spawnCli(args, opts = {}) {
   try {
-    return spawnSync(process.execPath, [BIN, ...args], {
+    const binToRun = existsSync(RUST_BIN) ? RUST_BIN : process.execPath
+    const cmdArgs = existsSync(RUST_BIN) ? args : [BIN, ...args]
+    return spawnSync(binToRun, cmdArgs, {
       cwd: opts.cwd,
       encoding: 'utf8',
       input: opts.input,
@@ -47,7 +50,9 @@ export function spawnCli(args, opts = {}) {
 }
 
 export function spawnCliAsync(args, opts = {}) {
-  return spawn(process.execPath, [BIN, ...args], {
+  const binToRun = existsSync(RUST_BIN) ? RUST_BIN : process.execPath
+  const cmdArgs = existsSync(RUST_BIN) ? args : [BIN, ...args]
+  return spawn(binToRun, cmdArgs, {
     cwd: opts.cwd,
     env: { ...process.env, HOME: testHome },
   })

@@ -24,11 +24,50 @@ pub enum Command {
     /// Run a script or inline code with ephemeral dependencies
     Run(RunArgs),
 
+    /// Generate a <script>.lock lockfile for a script and its dependencies
+    Lock(LockArgs),
+
+    /// Run ephemeral developer tools
+    Tool(ToolArgs),
+
     /// Manage the ntsx dependency cache
     Cache(CacheArgs),
 }
 
 #[derive(Args, Debug)]
+pub struct LockArgs {
+    /// Ephemeral dependency specifier.
+    #[arg(short = 'w', long = "with")]
+    pub with: Vec<String>,
+
+    /// Script file path.
+    pub script: String,
+}
+
+#[derive(Args, Debug)]
+pub struct ToolArgs {
+    #[command(subcommand)]
+    pub command: Option<ToolCommand>,
+
+    /// Default tool name
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+    pub tool_args: Vec<String>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ToolCommand {
+    /// Run a developer tool ephemerally
+    Run {
+        /// Tool package name
+        tool: String,
+        /// Arguments passed to tool
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+}
+
+#[derive(Args, Debug)]
+#[command(trailing_var_arg = true)]
 pub struct RunArgs {
     /// Ephemeral dependency.
     #[arg(short = 'w', long = "with")]
@@ -79,11 +118,12 @@ pub struct RunArgs {
     #[arg(long)]
     pub node: Option<String>,
 
-    /// Script path.
+    /// Script path or trailing arguments.
+    #[arg(allow_hyphen_values = true)]
     pub script: Option<String>,
 
     /// Arguments passed to the script.
-    #[arg(trailing_var_arg = true)]
+    #[arg(allow_hyphen_values = true)]
     pub script_args: Vec<String>,
 }
 
@@ -101,6 +141,12 @@ pub enum CacheCommand {
         #[arg(short = 'f', long)]
         force: bool,
     },
+
+    /// Print the absolute path to the cache directory.
+    Dir,
+
+    /// Prune unused cache items.
+    Prune,
 
     /// Show cache size and workspace count.
     Stats,
