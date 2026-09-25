@@ -23,6 +23,19 @@ fn is_ts_file(p: &str) -> bool {
     p.ends_with(".ts") || p.ends_with(".mts") || p.ends_with(".cts") || p.ends_with(".tsx")
 }
 
+fn split_args(raws: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    for raw in raws {
+        for token in raw.split_whitespace() {
+            let t = token.trim_matches(|c| c == '\'' || c == '"');
+            if !t.is_empty() {
+                out.push(t.to_string());
+            }
+        }
+    }
+    out
+}
+
 fn which(bin: &str) -> Option<PathBuf> {
     if let Ok(path_env) = env::var("PATH") {
         for dir in env::split_paths(&path_env) {
@@ -105,8 +118,8 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
                 child_args.push("tsx".to_string());
             }
 
-            for arg in &opts.tsx_args {
-                child_args.push(arg.clone());
+            for arg in split_args(&opts.tsx_args) {
+                child_args.push(arg);
             }
 
             if is_eval {
@@ -123,8 +136,8 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
         } else {
             child_cmd = Command::new(&node_bin);
 
-            for arg in &opts.node_args {
-                child_args.push(arg.clone());
+            for arg in split_args(&opts.node_args) {
+                child_args.push(arg);
             }
 
             if is_eval {

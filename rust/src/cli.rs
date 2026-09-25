@@ -67,7 +67,6 @@ pub enum ToolCommand {
 }
 
 #[derive(Args, Debug)]
-#[command(trailing_var_arg = true)]
 pub struct RunArgs {
     /// Ephemeral dependency.
     #[arg(short = 'w', long = "with")]
@@ -114,7 +113,7 @@ pub struct RunArgs {
     pub script: Option<String>,
 
     /// Arguments passed to the script.
-    #[arg(allow_hyphen_values = true)]
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     pub script_args: Vec<String>,
 }
 
