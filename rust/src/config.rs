@@ -5,7 +5,12 @@ pub fn home_dir() -> PathBuf {
         std::env::var("USERPROFILE")
             .ok()
             .map(PathBuf::from)
-            .unwrap_or_else(|| std::env::var("HOME").ok().map(PathBuf::from).unwrap_or_else(|| PathBuf::from(".")))
+            .unwrap_or_else(|| {
+                std::env::var("HOME")
+                    .ok()
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| PathBuf::from("."))
+            })
     } else {
         std::env::var("HOME")
             .ok()

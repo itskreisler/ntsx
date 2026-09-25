@@ -121,7 +121,7 @@ export async function resolveLatestNodeVersion(requested: string): Promise<strin
  * @param fullVersion - Full version string (e.g. "v22.14.0")
  * @returns Absolute path to downloaded Node executable
  */
-export async function downloadNodeRelease(fullVersion: string): Promise<string> {
+export async function downloadNodeRelease(fullVersion: string, opts?: { quiet?: boolean }): Promise<string> {
   const versionNoV = fullVersion.replace(/^v/i, '')
   const plat = getDistPlatform()
   const arch = getDistArch()
@@ -145,7 +145,9 @@ export async function downloadNodeRelease(fullVersion: string): Promise<string> 
   const archivePath = path.join(NODE_CACHE_ROOT, archiveName)
 
   try {
-    process.stderr.write(`ntsx: downloading Node.js ${fullVersion} (${plat}-${arch})...\n`)
+    if (!opts?.quiet) {
+      process.stderr.write(`ntsx: downloading Node.js ${fullVersion} (${plat}-${arch})...\n`)
+    }
     const res = await fetch(archiveUrl, {
       headers: { 'User-Agent': 'ntsx' },
     })
@@ -201,7 +203,7 @@ export async function downloadNodeRelease(fullVersion: string): Promise<string> 
  * @param version - Node version string (e.g. "22", "24", "v22.14.0", "current")
  * @returns Absolute path to executable Node binary
  */
-export async function resolveNodeBinary(version?: string): Promise<string> {
+export async function resolveNodeBinary(version?: string, opts?: { quiet?: boolean }): Promise<string> {
   if (!version || version === 'current' || version === process.versions.node) {
     return process.execPath
   }
@@ -214,7 +216,7 @@ export async function resolveNodeBinary(version?: string): Promise<string> {
 
   const fullVer = await resolveLatestNodeVersion(version)
   if (fullVer) {
-    return await downloadNodeRelease(fullVer)
+      return await downloadNodeRelease(fullVer, opts)
   }
 
   throw new Error(`Unable to resolve or download Node.js version "${version}"`)

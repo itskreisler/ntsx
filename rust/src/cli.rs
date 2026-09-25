@@ -86,24 +86,15 @@ pub struct RunArgs {
     pub eval_runtime: String,
 
     /// Flags forwarded to tsx.
-    #[arg(
-        long = "tsx-args",
-        allow_hyphen_values = true
-    )]
+    #[arg(long = "tsx-args", allow_hyphen_values = true)]
     pub tsx_args: Vec<String>,
 
     /// Flags forwarded to node.
-    #[arg(
-        long = "node-args",
-        allow_hyphen_values = true
-    )]
+    #[arg(long = "node-args", allow_hyphen_values = true)]
     pub node_args: Vec<String>,
 
     /// Flags forwarded to npm.
-    #[arg(
-        long = "npm-args",
-        allow_hyphen_values = true
-    )]
+    #[arg(long = "npm-args", allow_hyphen_values = true)]
     pub npm_args: Vec<String>,
 
     /// Suppress npm install output.

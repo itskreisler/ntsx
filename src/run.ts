@@ -198,7 +198,7 @@ export async function run(opts: RunOptions): Promise<number> {
       }
     } else {
       const runnerFlags = splitArgs(parsed.nodeArgs)
-      cmd = await resolveNodeBinary(effectiveNodeVersion)
+      cmd = await resolveNodeBinary(effectiveNodeVersion, { quiet: parsed.quiet })
       args = isEval
         ? [
             ...runnerFlags,
@@ -215,7 +215,7 @@ export async function run(opts: RunOptions): Promise<number> {
       process.stderr.write(`ntsx: [debug] exec: ${cmd} ${shownArgs}\n`)
     }
 
-    const nodeBin = await resolveNodeBinary(effectiveNodeVersion)
+    const nodeBin = await resolveNodeBinary(effectiveNodeVersion, { quiet: parsed.quiet })
     const customNodeDir = effectiveNodeVersion && nodeBin !== process.execPath ? path.dirname(nodeBin) : null
 
     if (!isTs) {
