@@ -98,13 +98,12 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
             opts.eval_runtime == "tsx"
         };
 
-        let node_bin = resolve_node_binary(opts.node_version.as_deref()).await?;
-        let custom_node_dir =
-            if opts.node_version.is_some() && node_bin != env::current_exe().unwrap_or_default() {
-                node_bin.parent().map(|p| p.to_path_buf())
-            } else {
-                None
-            };
+        let node_bin = resolve_node_binary(opts.node_version.as_deref(), opts.quiet).await?;
+        let custom_node_dir = if opts.node_version.is_some() && node_bin.as_os_str() != "node" {
+            node_bin.parent().map(|p| p.to_path_buf())
+        } else {
+            None
+        };
 
         let mut child_cmd;
         let mut child_args = Vec::new();

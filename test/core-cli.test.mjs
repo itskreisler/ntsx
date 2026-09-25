@@ -37,7 +37,7 @@ test('core CLI: --with con spec inválido devuelve error limpio', () => {
 })
 
 test('core CLI: --node ejecuta el script', () => {
-  const out = runCli(['run', '--node', '22', '-e', 'console.log("node-reserved")'])
+  const out = runCli(['run', '-q', '--node', '22', '-e', 'console.log("node-reserved")'])
   assert.equal(out.trim(), 'node-reserved')
 })
 

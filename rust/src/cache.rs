@@ -278,9 +278,16 @@ pub async fn prepare_cache(
                 .stderr(std::process::Stdio::null());
         }
 
-        let status = npm_cmd.status()?;
-        if !status.success() {
-            return Err(format!("npm install failed with status {status}").into());
+        let output = npm_cmd.output()?;
+        if !output.status.success() {
+            let stderr_str = String::from_utf8_lossy(&output.stderr);
+            let detail = stderr_str
+                .trim()
+                .lines()
+                .take(8)
+                .collect::<Vec<_>>()
+                .join("\n");
+            return Err(format!("Invalid package spec (expected pkg, pkg@version, @scope/pkg, or @scope/pkg@version)\n\n{detail}").into());
         }
     }
 

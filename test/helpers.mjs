@@ -1,13 +1,13 @@
 import { after } from 'node:test'
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdtempSync, chmodSync, rmSync } from 'node:fs'
+import { mkdtempSync, chmodSync, rmSync, existsSync, mkdirSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
 export const RUST_BIN = path.resolve('rust/bin/ntsx')
 export const BIN = path.resolve('dist/ntsx.js')
 
-import { existsSync, mkdirSync } from 'node:fs'
+const useRust = process.env.USE_RUST_BIN === '1' && existsSync(RUST_BIN)
 
 // HOME aislado compartido entre tests: reusa el caché de npm/ntsx para velocidad instantánea.
 const sharedHome = path.join(os.tmpdir(), 'ntsx-shared-test-home')
@@ -36,8 +36,8 @@ after(() => {
 
 export function spawnCli(args, opts = {}) {
   try {
-    const binToRun = existsSync(RUST_BIN) ? RUST_BIN : process.execPath
-    const cmdArgs = existsSync(RUST_BIN) ? args : [BIN, ...args]
+    const binToRun = useRust ? RUST_BIN : process.execPath
+    const cmdArgs = useRust ? args : [BIN, ...args]
     return spawnSync(binToRun, cmdArgs, {
       cwd: opts.cwd,
       encoding: 'utf8',
@@ -50,8 +50,8 @@ export function spawnCli(args, opts = {}) {
 }
 
 export function spawnCliAsync(args, opts = {}) {
-  const binToRun = existsSync(RUST_BIN) ? RUST_BIN : process.execPath
-  const cmdArgs = existsSync(RUST_BIN) ? args : [BIN, ...args]
+  const binToRun = useRust ? RUST_BIN : process.execPath
+  const cmdArgs = useRust ? args : [BIN, ...args]
   return spawn(binToRun, cmdArgs, {
     cwd: opts.cwd,
     env: { ...process.env, HOME: testHome },
