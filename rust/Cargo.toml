@@ -2,7 +2,7 @@
 name = "ntsx"
 version = "0.1.8"
 edition = "2021"
-description = "Ephemeral Node/TS script runner"
+description = "Run Node/TS scripts with ephemeral dependencies (uv-style --with) via npm cache + symlink"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

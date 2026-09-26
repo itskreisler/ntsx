@@ -8,9 +8,11 @@ use clap::{Args, Parser, Subcommand};
     after_help = "\
 Examples:
   ntsx run --with axios --with jsdom script.ts
-  ntsx run --with chalk@^4 script.js arg1
-  ntsx run -e \"import { JSDOM } from 'jsdom'; console.log(typeof JSDOM)\"
-
+  ntsx run --with @kreisler/js-google-translate-free@^5 script.js -- --to=es --text=\"Hello World\"
+  # .env file
+  USER_ID=12345 
+  ntsx run --tsx-args \"--env-file=.env\" -e \"import { loadEnvFile } from 'node:process';loadEnvFile();console.log(process.env.USER_ID);\"
+  ntsx run --node-args \"--env-file=.env\" -e \"import { loadEnvFile } from 'node:process';loadEnvFile();console.log(process.env.USER_ID);\"
 Dependencies are installed to ~/.cache/ntsx and linked via a node_modules symlink.
 "
 )]

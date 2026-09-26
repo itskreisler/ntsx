@@ -72,9 +72,9 @@ pub async fn download_node_release(
         format!("v{clean}")
     } else {
         match clean {
-            "22" => "v22.14.0".to_string(),
-            "24" => "v24.0.0".to_string(),
-            "20" => "v20.18.0".to_string(),
+            "26" => "v26.10.0".to_string(),
+            "24" => "v24.21.0".to_string(),
+            "22" => "v22.23.3".to_string(),
             _ => format!("v{clean}.0.0"),
         }
     };

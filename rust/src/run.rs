@@ -39,16 +39,20 @@ fn split_args(raws: &[String]) -> Vec<String> {
 fn which(bin: &str) -> Option<PathBuf> {
     if let Ok(path_env) = env::var("PATH") {
         for dir in env::split_paths(&path_env) {
-            let candidate = dir.join(bin);
-            if candidate.is_file() {
-                return Some(candidate);
-            }
+            // On Windows, prefer .exe over .cmd to avoid issues with paths containing spaces
             #[cfg(windows)]
             {
                 let cand_exe = dir.join(format!("{bin}.exe"));
                 if cand_exe.is_file() {
                     return Some(cand_exe);
                 }
+            }
+            let candidate = dir.join(bin);
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+            #[cfg(windows)]
+            {
                 let cand_cmd = dir.join(format!("{bin}.cmd"));
                 if cand_cmd.is_file() {
                     return Some(cand_cmd);
@@ -105,32 +109,69 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
             None
         };
 
-        let mut child_cmd;
-        let mut child_args = Vec::new();
+    // Modify PATH early so `which` searches the correct PATH (including custom Node dir)
+    if let Some(c_dir) = &custom_node_dir {
+        if let Ok(path_env) = env::var("PATH") {
+            let path_sep = if cfg!(windows) { ";" } else { ":" };
+            let new_path = format!("{}{path_sep}{path_env}", c_dir.display());
+            env::set_var("PATH", &new_path);
+        }
+    }
 
-        if is_ts {
-            if let Some(tsx_path) = which("tsx") {
-                child_cmd = Command::new(tsx_path);
+    let mut child_cmd;
+    let mut child_args: Vec<String> = Vec::new();
+
+    if is_ts {
+            // Prefer tsx from the custom Node's npm global dir if available
+            let tsx_path = if let Some(c_dir) = &custom_node_dir {
+                // Check for tsx in the custom Node's npm global bin
+                let npm_global = c_dir.join("node_modules").join(".bin").join(if cfg!(windows) { "tsx.cmd" } else { "tsx" });
+                if npm_global.exists() {
+                    Some(npm_global)
+                } else {
+                    which("tsx")
+                }
             } else {
-                child_cmd = Command::new("npx");
-                child_args.push("-y".to_string());
-                child_args.push("tsx".to_string());
-            }
+                which("tsx")
+            };
 
-            for arg in split_args(&opts.tsx_args) {
-                child_args.push(arg);
-            }
+            if let Some(tsx_path) = tsx_path {
+                child_cmd = Command::new(tsx_path);
 
-            if is_eval {
-                child_args.push("-e".to_string());
-                child_args.push(opts.eval_code.clone().unwrap());
-                if !opts.script_args.is_empty() {
-                    child_args.push("--".to_string());
+                for arg in split_args(&opts.tsx_args) {
+                    child_args.push(arg);
+                }
+
+                if is_eval {
+                    child_args.push("-e".to_string());
+                    child_args.push(opts.eval_code.clone().unwrap());
+                    if !opts.script_args.is_empty() {
+                        child_args.push("--".to_string());
+                        child_args.extend(opts.script_args.iter().cloned());
+                    }
+                } else {
+                    child_args.push(script_path.unwrap().to_string_lossy().to_string());
                     child_args.extend(opts.script_args.iter().cloned());
                 }
             } else {
-                child_args.push(script_path.unwrap().to_string_lossy().to_string());
-                child_args.extend(opts.script_args.iter().cloned());
+                child_cmd = Command::new(&node_bin);
+
+                for arg in split_args(&opts.node_args) {
+                    child_args.push(arg);
+                }
+
+                if is_eval {
+                    child_args.push("--input-type=module".to_string());
+                    child_args.push("-e".to_string());
+                    child_args.push(opts.eval_code.clone().unwrap());
+                    if !opts.script_args.is_empty() {
+                        child_args.push("--".to_string());
+                        child_args.extend(opts.script_args.iter().cloned());
+                    }
+                } else {
+                    child_args.push(script_path.unwrap().to_string_lossy().to_string());
+                    child_args.extend(opts.script_args.iter().cloned());
+                }
             }
         } else {
             child_cmd = Command::new(&node_bin);
@@ -150,14 +191,6 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
             } else {
                 child_args.push(script_path.unwrap().to_string_lossy().to_string());
                 child_args.extend(opts.script_args.iter().cloned());
-            }
-        }
-
-        if let Some(c_dir) = custom_node_dir {
-            if let Ok(path_env) = env::var("PATH") {
-                let path_sep = if cfg!(windows) { ";" } else { ":" };
-                let new_path = format!("{}{path_sep}{path_env}", c_dir.display());
-                child_cmd.env("PATH", new_path);
             }
         }
 
