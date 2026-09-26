@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { writeFileSync, unlinkSync } from 'node:fs'
 import path from 'node:path'
-import { runCliWithRetry, sandbox } from './helpers.mjs'
+import { runCliWithRetry, sandbox } from '../helpers.mjs'
 
 test('script metadata: parses /// ntsx header block and loads declared dependencies', () => {
   const dir = sandbox()

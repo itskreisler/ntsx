@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { writeFileSync, existsSync, readFileSync, unlinkSync } from 'node:fs'
 import path from 'node:path'
-import { runCliWithRetry, sandbox } from './helpers.mjs'
+import { runCliWithRetry, sandbox } from '../helpers.mjs'
 
 test('lockfile: ntsx lock creates lockfile and run reads it', () => {
   const dir = sandbox()

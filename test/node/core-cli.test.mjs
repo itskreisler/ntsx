@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { runCli, runCliErr } from './helpers.mjs'
+import { runCli, runCliErr } from '../helpers.mjs'
 
 test('core CLI: eval por default usa tsx (soporta TS syntax)', () => {
   const out = runCli(['run', '-e', "type X = { a: number }; const o: X = { a: 42 }; console.log('inline-01', o.a)"])

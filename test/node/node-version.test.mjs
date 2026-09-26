@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { runCli } from './helpers.mjs'
+import { runCli } from '../helpers.mjs'
 
 test('node version: --node 22 flag executes script with major 22', () => {
   const out = runCli(['run', '-q', '--node', '22', '-e', 'console.log("node-22-ok", process.version.split(".")[0])'])

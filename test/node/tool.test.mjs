@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { runCliWithRetry, sandbox } from './helpers.mjs'
+import { runCliWithRetry, sandbox } from '../helpers.mjs'
 
 test('tool: ntsx tool executes CLI tool ephemerally', () => {
   const dir = sandbox()

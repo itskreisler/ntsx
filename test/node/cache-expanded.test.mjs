@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { runCli } from './helpers.mjs'
+import { runCli } from '../helpers.mjs'
 
 test('cache expanded: ntsx cache dir prints cache directory', () => {
   const out = runCli(['cache', 'dir'])

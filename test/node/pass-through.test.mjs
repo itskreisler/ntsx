@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { writeFileSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { sandbox, runCliWithRetry } from './helpers.mjs'
+import { sandbox, runCliWithRetry } from '../helpers.mjs'
 
 function runInSandbox(scriptName, args, opts = {}) {
   const dir = sandbox()
