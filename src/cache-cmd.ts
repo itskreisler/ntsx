@@ -101,7 +101,12 @@ export async function cleanCache(force: boolean): Promise<CleanCacheResult> {
 
   if (!confirmed) return { cleared: false, sizeFreed }
 
-  await fs.rm(CACHE_ROOT, { recursive: true, force: true })
+  try {
+    await fs.rm(CACHE_ROOT, { recursive: true, force: true })
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    await fs.rm(CACHE_ROOT, { recursive: true, force: true }).catch(() => {})
+  }
   return { cleared: true, sizeFreed }
 }
 
@@ -167,7 +172,7 @@ export async function pruneCache(): Promise<CleanCacheResult> {
       // If workspace directory is empty after cleaning, remove it
       const remaining = await fs.readdir(wsPath)
       if (remaining.length === 0) {
-        await fs.rmdir(wsPath).catch(() => {})
+        await fs.rm(wsPath, { recursive: true, force: true }).catch(() => {})
       }
     }
   } catch {

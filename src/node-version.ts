@@ -100,7 +100,7 @@ export async function fetchNodeReleases(): Promise<NodeRelease[]> {
 export async function resolveLatestNodeVersion(requested: string): Promise<string | null> {
   const clean = requested.trim().replace(/^v/i, '')
   const releases = await fetchNodeReleases()
-  if (releases.length === 0) return null
+  if (releases.length === 0) return `v${clean}`
 
   // If exact match exists (e.g. "v22.14.0")
   const exact = releases.find((r) => r.version.toLowerCase() === `v${clean}`.toLowerCase())
@@ -112,7 +112,7 @@ export async function resolveLatestNodeVersion(requested: string): Promise<strin
     return verNum.startsWith(`${clean}.`) || verNum === clean
   })
 
-  return majorMatch ? majorMatch.version : null
+  return majorMatch ? majorMatch.version : `v${clean}`
 }
 
 /**
@@ -216,7 +216,7 @@ export async function resolveNodeBinary(version?: string, opts?: { quiet?: boole
 
   const fullVer = await resolveLatestNodeVersion(version)
   if (fullVer) {
-      return await downloadNodeRelease(fullVer, opts)
+    return await downloadNodeRelease(fullVer, opts)
   }
 
   throw new Error(`Unable to resolve or download Node.js version "${version}"`)

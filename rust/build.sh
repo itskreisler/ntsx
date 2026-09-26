@@ -12,24 +12,18 @@ build() {
 
     echo "Building ntsx for $platform ($target)..."
 
+    mkdir -p "$BIN/$platform"
+
     if cargo build --release --target "$target" 2>/dev/null; then
-        mkdir -p "$BIN/$platform"
         cp "$ROOT/target/$target/release/ntsx$extension" "$BIN/$platform/ntsx$extension"
         chmod +x "$BIN/$platform/ntsx$extension" 2>/dev/null || true
-        echo "✓ Built $BIN/$platform/ntsx$extension"
+        echo "✓ Built $BIN/$platform/ntsx$extension ($target)"
     else
-        echo "⚠️ Target $target not available or linker missing; attempting host fallback for $platform..."
-        if [ "$target" = "$(rustc -vV | grep host | cut -d' ' -f2)" ] || [ -z "$target" ]; then
-            cargo build --release
-            mkdir -p "$BIN/$platform"
-            cp "$ROOT/target/release/ntsx$extension" "$BIN/$platform/ntsx$extension"
-            chmod +x "$BIN/$platform/ntsx$extension" 2>/dev/null || true
-            echo "✓ Built $BIN/$platform/ntsx$extension (host release)"
-        fi
+        echo "⚠️ Target $target linker unavailable in build environment; omitting $platform binary build."
     fi
 }
 
-# Build native release
+# Build native release first
 cargo build --release
 
 # Determine host target & platform
@@ -50,13 +44,11 @@ fi
 mkdir -p "$BIN/$HOST_PLATFORM"
 cp "$ROOT/target/release/ntsx" "$BIN/$HOST_PLATFORM/ntsx" 2>/dev/null || cp "$ROOT/target/release/ntsx.exe" "$BIN/$HOST_PLATFORM/ntsx.exe" 2>/dev/null || true
 
-# Build Linux and Windows target binaries
+# Attempt multi-target builds if cross-compilation linkers exist
 build "aarch64-unknown-linux-gnu" "linux-aarch64" ""
 build "x86_64-unknown-linux-gnu" "linux-x86_64" ""
 build "x86_64-pc-windows-gnu" "windows-x86_64" ".exe"
 build "aarch64-pc-windows-gnullvm" "windows-aarch64" ".exe"
-build "x86_64-apple-darwin" "macos-x86_64" ""
-build "aarch64-apple-darwin" "macos-aarch64" ""
 
 # Clean up any unnested root bin binaries
 rm -f "$BIN/ntsx" "$BIN/ntsx.exe"
