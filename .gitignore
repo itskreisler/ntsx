@@ -2,3 +2,9 @@ node_modules/
 dist/
 .cache/
 *.log
+/rust/target/
+/target/
+rust/target
+target
+Cargo.lock
+rust/Cargo.lock

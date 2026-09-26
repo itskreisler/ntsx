@@ -46,6 +46,15 @@ ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://npmjs.c
 # con versiones
 ntsx run --with chalk@^4 script.js arg1
 
+# fijando versión de Node
+ntsx run --node 24 script.ts
+
+# generar lockfile
+ntsx lock script.ts
+
+# ejecutar tool efímera
+ntsx tool prettier --write script.ts
+
 # pasando argumentos al script
 ntsx run --with axios diario.ts --fecha hoy
 ```
@@ -151,8 +160,10 @@ crash se auto-curan** en la siguiente corrida.
 
 ```bash
 ntsx cache stats            # workspaces + tamaño
+ntsx cache dir              # imprime la ruta absoluta del caché
 ntsx cache clean            # pide confirmación
 ntsx cache clean --force    # borra sin piedad
+ntsx cache prune            # limpia elementos huérfanos del caché
 ```
 
 ```
@@ -174,7 +185,26 @@ ntsx cache clean --force    # borra sin piedad
 | `--npm-args <flags>` | Flags para el `npm install` del caché. Repetible |
 | `-q, --quiet` | Silencia la salida de `npm install` |
 | `-d, --debug` | Traza el flujo: rutas del caché, comandos, symlink, restore |
-| `--node <version>` | Pin de Node (**reservado** para una próxima versión) |
+| `--node <version>` | Pin de Node (descarga la versión en `~/.cache/ntsx/node/`) |
+
+## Script Metadata
+
+Los scripts pueden declarar sus dependencias y versión de Node directamente en un encabezado:
+
+```typescript
+// /// ntsx
+// dependencies = [
+//   "axios",
+//   "chalk"
+// ]
+// node = "24"
+// ///
+
+import chalk from 'chalk'
+import axios from 'axios'
+```
+
+Y ejecutarse simplemente con: `ntsx run script.ts`
 
 ## ¿Cuándo NO usar ntsx?
 

@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { writeFileSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { sandbox, runCliWithRetry } from './helpers.mjs'
+import { sandbox, runCliWithRetry } from '../helpers.mjs'
 
 function runInSandbox(scriptName, args, opts = {}) {
   const dir = sandbox()
@@ -68,20 +68,22 @@ test('argv2object + chalk inline multi-package pass-through', () => {
 })
 
 test('eval pass-through 01: flags con -- (--name=Kreisler -h --help --is-admin)', () => {
+  const dir = sandbox()
   const out = runCliWithRetry([
     'run', '--with', 'chalk', '-q', '-e',
     "import chalk from 'chalk'; console.log(chalk.green(JSON.stringify(process.argv.slice(1))))",
     '--', '--name=Kreisler', '-h', '--help', '--is-admin',
-  ])
+  ], { cwd: dir })
   assert.deepEqual(JSON.parse(out.trim()), ['--name=Kreisler', '-h', '--help', '--is-admin'])
 })
 
 test('eval pass-through 02: argv2object con -- + flags', () => {
+  const dir = sandbox()
   const out = runCliWithRetry([
     'run', '--with', 'argv2object', '-q', '-e',
     "import a from 'argv2object'; console.log(JSON.stringify({ argv: process.argv.slice(1), parsed: a(true) }))",
     '--', '-h', '--help', '--name=Kreisler', '--is-admin',
-  ])
+  ], { cwd: dir })
   const { argv, parsed } = JSON.parse(out.trim())
   assert.deepEqual(argv, ['-h', '--help', '--name=Kreisler', '--is-admin'])
   assert.equal(parsed.name, 'Kreisler')
@@ -91,27 +93,40 @@ test('eval pass-through 02: argv2object con -- + flags', () => {
 })
 
 test('eval pass-through 03: args simples sin -- (arg1 archivo.txt)', () => {
+  const dir = sandbox()
   const out = runCliWithRetry([
     'run', '--with', 'chalk', '-q', '-e',
     "import chalk from 'chalk'; console.log(chalk.cyan(JSON.stringify(process.argv.slice(1))))",
     'arg1', 'archivo.txt',
-  ])
+  ], { cwd: dir })
   assert.deepEqual(JSON.parse(out.trim()), ['arg1', 'archivo.txt'])
 })
 
 test('eval pass-through 04: node runtime con -- + flags (-h --name=Kreisler)', () => {
+  const dir = sandbox()
   const out = runCliWithRetry([
     'run', '--with', 'chalk', '-q', '--eval-runtime', 'node', '-e',
     "import chalk from 'chalk'; console.log(chalk.blue(JSON.stringify(process.argv.slice(1))))",
     '--', '-h', '--name=Kreisler',
-  ])
+  ], { cwd: dir })
   assert.deepEqual(JSON.parse(out.trim()), ['-h', '--name=Kreisler'])
 })
 
 test('eval pass-through 05: sin args extra (argv vacío)', () => {
+  const dir = sandbox()
   const out = runCliWithRetry([
     'run', '--with', 'chalk', '-q', '-e',
     "import chalk from 'chalk'; console.log(chalk.yellow(JSON.stringify(process.argv.slice(1))))",
-  ])
+  ], { cwd: dir })
   assert.deepEqual(JSON.parse(out.trim()), [])
+})
+
+test('acceptance criteria: argument forwarding with -- (-h --name=Kreisler --is-admin)', () => {
+  const dir = sandbox()
+  const out = runCliWithRetry([
+    'run', '-e',
+    'console.log(process.argv.slice(1))',
+    '--', '-h', '--name=Kreisler', '--is-admin',
+  ], { cwd: dir })
+  assert.equal(out.trim(), "[ '-h', '--name=Kreisler', '--is-admin' ]")
 })

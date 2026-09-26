@@ -4,7 +4,10 @@ import { Command } from 'commander'
 import { z } from 'zod'
 import { run } from './run.js'
 import { CACHE_ROOT } from './config.js'
-import { cacheStats, cleanCache, fmtBytes } from './cache-cmd.js'
+import { cacheStats, cleanCache, cacheDir, pruneCache, fmtBytes } from './cache-cmd.js'
+import { generateLockfile } from './lockfile.js'
+import { parseScriptMetadata } from './metadata.js'
+import { runTool } from './tool.js'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
@@ -53,16 +56,6 @@ async function guard(fn: () => Promise<void>): Promise<void> {
   }
 }
 
-/**
- * Logs a note to stderr if reserved options (such as `--node`) are passed.
- *
- * @param options - CLI options object.
- */
-function noteReservedFlags(options: { node?: string }): void {
-  if (options.node) {
-    process.stderr.write(`ntsx: note: --node is reserved and currently ignored\n`)
-  }
-}
 
 const program = new Command()
 program.enablePositionalOptions()
@@ -84,7 +77,7 @@ program
   .option('--npm-args <flags>', 'flags forwarded to the ephemeral npm install. Repeatable', collect, [])
   .option('-q, --quiet', 'suppress npm install output')
   .option('-d, --debug', 'show internal steps (cache paths, commands, restore)')
-  .option('--node <version>', 'pin Node version (reserved for a future version)')
+  .option('--node <version>', 'pin Node version')
   .argument('[script]', 'script path (js, ts, mts, cts, tsx). Omit with --eval')
   .argument('[scriptArgs...]', 'arguments passed to the script')
   .action(
@@ -103,7 +96,6 @@ program
         debug?: boolean
       }
     ) => {
-      noteReservedFlags(options)
       await guard(async () => {
         const isEval = options.eval !== undefined
         const effectiveScriptArgs = isEval && script ? [script, ...scriptArgs] : scriptArgs
@@ -117,6 +109,7 @@ program
           tsxArgs: options.tsxArgs ?? [],
           nodeArgs: options.nodeArgs ?? [],
           npmArgs: options.npmArgs ?? [],
+          nodeVersion: options.node,
           debug: options.debug ?? false,
         })
         if (exitCode !== 0) process.exitCode = exitCode
@@ -144,6 +137,21 @@ cacheCmd
     })
   })
 
+// ----- command: lock -----
+program
+  .command('lock')
+  .description('Generate a <script>.lock lockfile for a script and its dependencies')
+  .option('-w, --with <pkg>', 'ephemeral dependency specifier. Repeatable', collect, [])
+  .argument('<script>', 'script file path')
+  .action(async (script: string, options: { with?: string[] }) => {
+    await guard(async () => {
+      const meta = await parseScriptMetadata(script)
+      const withList = Array.from(new Set([...meta.dependencies, ...(options.with ?? [])]))
+      const lockPath = await generateLockfile(script, withList)
+      console.log(`Lockfile generated at ${lockPath}`)
+    })
+  })
+
 cacheCmd
   .command('stats')
   .description('Show cache size and workspace count')
@@ -157,6 +165,56 @@ cacheCmd
       console.log(`Cache: ${CACHE_ROOT}`)
       console.log(`Workspaces: ${s.workspaceCount}`)
       console.log(`Size: ${fmtBytes(s.sizeBytes)}`)
+    })
+  })
+
+cacheCmd
+  .command('dir')
+  .description('Print the absolute path to the cache directory')
+  .action(() => {
+    console.log(cacheDir())
+  })
+
+cacheCmd
+  .command('prune')
+  .description('Prune unused cache items')
+  .action(async () => {
+    await guard(async () => {
+      const res = await pruneCache()
+      if (res.cleared) {
+        console.log('Cache pruned')
+      } else {
+        console.log('Cache does not exist or nothing to prune')
+      }
+    })
+  })
+
+// ----- command: tool -----
+const toolCmd = program.command('tool').description('Run ephemeral developer tools').passThroughOptions()
+
+toolCmd
+  .command('run')
+  .description('Run a developer tool ephemerally')
+  .passThroughOptions()
+  .argument('<tool>', 'tool package name (e.g., prettier, rimraf)')
+  .argument('[toolArgs...]', 'arguments forwarded to the tool')
+  .action(async (tool: string, toolArgs: string[]) => {
+    await guard(async () => {
+      const exitCode = await runTool({ tool, args: toolArgs, quiet: true })
+      if (exitCode !== 0) process.exitCode = exitCode
+    })
+  })
+
+// Default tool execution shortcut (ntsx tool <tool> [args...])
+toolCmd
+  .argument('[tool]', 'tool package name')
+  .argument('[toolArgs...]', 'arguments forwarded to the tool')
+  .passThroughOptions()
+  .action(async (tool: string | undefined, toolArgs: string[]) => {
+    if (!tool) return
+    await guard(async () => {
+      const exitCode = await runTool({ tool, args: toolArgs, quiet: true })
+      if (exitCode !== 0) process.exitCode = exitCode
     })
   })
 

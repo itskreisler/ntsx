@@ -25,14 +25,31 @@ ntsx run [options] [script] [scriptArgs...]
 - `--npm-args <flags>`: Flags passed directly to the internal `npm install` call in cache.
 - `-q, --quiet`: Suppresses `npm install` output.
 - `-d, --debug`: Prints internal execution traces (workspace hash, cache paths, symlinks, signal interception).
-- `--node <version>`: Reserved flag for future Node version pinning.
+- `--node <version>`: Pin Node version (downloads distribution into `~/.cache/ntsx/node/`).
+
+### `ntsx lock`
+Generates a `<script>.lock` lockfile for reproducible executions.
+
+```bash
+ntsx lock <script>
+```
+
+### `ntsx tool`
+Runs CLI developer tools in isolated environments.
+
+```bash
+ntsx tool <tool> [args...]
+ntsx tool run <tool> [args...]
+```
 
 ### `ntsx cache`
 Manages the isolated dependency cache (`~/.cache/ntsx`).
 
 - `ntsx cache stats`: Displays total workspace count and disk usage bytes.
+- `ntsx cache dir`: Displays absolute path to cache root.
 - `ntsx cache clean`: Prompts for confirmation to remove the cache directory.
 - `ntsx cache clean --force` / `-f`: Purges the cache directory without confirmation.
+- `ntsx cache prune`: Removes orphaned temporary backups and lock files.
 
 ---
 

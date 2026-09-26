@@ -3,6 +3,9 @@ import { statSync } from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { prepareCache, restoreNodeModules, acquireRunLock, type NodeModulesStash } from './cache.js'
+import { parseScriptMetadata } from './metadata.js'
+import { readLockfile } from './lockfile.js'
+import { resolveNodeBinary } from './node-version.js'
 
 /**
  * Options for running a script or evaluating inline code.
@@ -26,6 +29,8 @@ export interface RunOptions {
   nodeArgs?: string[]
   /** Flags forwarded to npm install. */
   npmArgs?: string[]
+  /** Pin Node.js version. */
+  nodeVersion?: string
   /** If true, outputs internal execution step traces to stderr. */
   debug?: boolean
 }
@@ -48,6 +53,7 @@ const runOptionsSchema = z.object({
   tsxArgs: z.array(z.string().min(1)).default([]),
   nodeArgs: z.array(z.string().min(1)).default([]),
   npmArgs: z.array(z.string().min(1)).default([]),
+  nodeVersion: z.string().optional(),
   debug: z.boolean().default(false),
 })
 
@@ -133,14 +139,36 @@ export async function run(opts: RunOptions): Promise<number> {
   const scriptPath = isEval ? null : resolveScript(parsed.script as string)
   const targetDir = scriptPath ? path.dirname(scriptPath) : process.cwd()
 
+  // Extract metadata from script comments if scriptPath is present
+  let metadataDeps: string[] = []
+  let metadataNodeVersion: string | undefined
+  if (scriptPath) {
+    const meta = await parseScriptMetadata(scriptPath)
+    metadataDeps = meta.dependencies
+    metadataNodeVersion = meta.node
+  }
+
+  const effectiveNodeVersion = parsed.nodeVersion || metadataNodeVersion
+
+  // Extract dependencies from lockfile if scriptPath is present and lockfile exists
+  let lockedDeps: string[] = []
+  if (scriptPath) {
+    const lock = await readLockfile(scriptPath)
+    if (lock) {
+      lockedDeps = Object.entries(lock.dependencies).map(([pkg, info]) => `${pkg}@${info.version}`)
+    }
+  }
+
+  const effectiveWithList = Array.from(new Set([...lockedDeps, ...metadataDeps, ...parsed.withList]))
+
   let stash: NodeModulesStash | null = null
   let releaseLock: (() => Promise<void>) | null = null
 
   try {
-    if (parsed.withList.length > 0) {
+    if (effectiveWithList.length > 0) {
       releaseLock = await acquireRunLock(targetDir)
       if (parsed.debug) process.stderr.write(`ntsx: [debug] run lock adquirido en ${targetDir}\n`)
-      const prepped = await prepareCache(parsed.withList, targetDir, {
+      const prepped = await prepareCache(effectiveWithList, targetDir, {
         quiet: parsed.quiet,
         npmArgs: splitArgs(parsed.npmArgs),
         debug: parsed.debug,
@@ -170,7 +198,7 @@ export async function run(opts: RunOptions): Promise<number> {
       }
     } else {
       const runnerFlags = splitArgs(parsed.nodeArgs)
-      cmd = process.execPath
+      cmd = await resolveNodeBinary(effectiveNodeVersion, { quiet: parsed.quiet })
       args = isEval
         ? [
             ...runnerFlags,
@@ -187,9 +215,21 @@ export async function run(opts: RunOptions): Promise<number> {
       process.stderr.write(`ntsx: [debug] exec: ${cmd} ${shownArgs}\n`)
     }
 
+    const nodeBin = await resolveNodeBinary(effectiveNodeVersion, { quiet: parsed.quiet })
+    const customNodeDir = effectiveNodeVersion && nodeBin !== process.execPath ? path.dirname(nodeBin) : null
+
+    if (!isTs) {
+      cmd = nodeBin
+    }
+
+    const spawnEnv: NodeJS.ProcessEnv = { ...process.env }
+    if (customNodeDir) {
+      spawnEnv.PATH = `${customNodeDir}${path.delimiter}${spawnEnv.PATH ?? ''}`
+    }
+
     const spawnOpts: { stdio: 'inherit'; env: NodeJS.ProcessEnv; shell?: boolean } = {
       stdio: 'inherit',
-      env: process.env,
+      env: spawnEnv,
     }
     if (process.platform === 'win32' && /\.cmd$/i.test(cmd)) spawnOpts.shell = true
     const child = spawn(cmd, args, spawnOpts)

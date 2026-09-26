@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { runCliWithRetry } from './helpers.mjs'
+import { runCliWithRetry } from '../helpers.mjs'
 
 test('inline package 01: axios', () => {
   const out = runCliWithRetry(['run', '--with', 'axios', '-q', '-e', "import axios from 'axios'; console.log('axios', typeof axios.get)"])

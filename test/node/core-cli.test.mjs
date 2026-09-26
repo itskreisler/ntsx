@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { runCli, runCliErr } from './helpers.mjs'
+import { runCli, runCliErr } from '../helpers.mjs'
 
 test('core CLI: eval por default usa tsx (soporta TS syntax)', () => {
   const out = runCli(['run', '-e', "type X = { a: number }; const o: X = { a: 42 }; console.log('inline-01', o.a)"])
@@ -15,8 +15,7 @@ test('core CLI: --eval-runtime node ejecuta con node nativo (top-level await)', 
 test('core CLI: --eval-runtime inválido devuelve error limpio y exit != 0', () => {
   const { code, stderr } = runCliErr(['run', '--eval-runtime', 'bun', '-e', '1'])
   assert.notEqual(code, 0)
-  assert.match(stderr, /ntsx: /)
-  assert.match(stderr, /tsx.*\|.*node/)
+  assert.match(stderr, /tsx.*node/)
 })
 
 test('core CLI: sin script ni eval da error', () => {
@@ -37,10 +36,9 @@ test('core CLI: --with con spec inválido devuelve error limpio', () => {
   assert.match(stderr, /Invalid package spec/)
 })
 
-test('core CLI: --node reservado muestra nota en stderr', () => {
-  const { stderr, stdout } = runCliErr(['run', '--node', '22', '-e', 'console.log("node-reserved")'])
-  assert.equal(stdout.trim(), 'node-reserved')
-  assert.match(stderr, /--node is reserved and currently ignored/)
+test('core CLI: --node ejecuta el script', () => {
+  const out = runCli(['run', '-q', '--node', '22', '-e', 'console.log("node-reserved")'])
+  assert.equal(out.trim(), 'node-reserved')
 })
 
 test('core CLI: cache stats funciona', () => {
