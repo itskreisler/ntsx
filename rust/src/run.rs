@@ -155,8 +155,8 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
 
         if let Some(c_dir) = custom_node_dir {
             if let Ok(path_env) = env::var("PATH") {
-                let new_path =
-                    format!("{}{}{path_env}", c_dir.display(), std::path::MAIN_SEPARATOR);
+                let path_sep = if cfg!(windows) { ";" } else { ":" };
+                let new_path = format!("{}{path_sep}{path_env}", c_dir.display());
                 child_cmd.env("PATH", new_path);
             }
         }

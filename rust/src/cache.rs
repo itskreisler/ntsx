@@ -39,11 +39,12 @@ pub fn fmt_bytes(bytes: u64) -> String {
 }
 
 pub fn short_hash(input: &str) -> String {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    let mut hasher = DefaultHasher::new();
-    input.hash(&mut hasher);
-    format!("{:016x}", hasher.finish())
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in input.bytes() {
+        hash ^= byte as u64;
+        hash = hash.wrapping_mul(0x0100_0000_01b3);
+    }
+    format!("{:016x}", hash)
 }
 
 pub fn workspace_hash(target_dir: &Path) -> String {

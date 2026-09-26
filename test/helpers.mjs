@@ -13,13 +13,10 @@ function getPlatformDir() {
 const platformDir = getPlatformDir()
 const ext = process.platform === 'win32' ? '.exe' : ''
 
-const platformRustBin = path.resolve(`rust/bin/${platformDir}/ntsx${ext}`)
-const fallbackRustBin = path.resolve(`rust/bin/ntsx${ext}`)
-
-export const RUST_BIN = existsSync(platformRustBin) ? platformRustBin : fallbackRustBin
+export const RUST_BIN = path.resolve(`rust/bin/${platformDir}/ntsx${ext}`)
 export const BIN = path.resolve('dist/ntsx.js')
 
-const useRust = process.env.USE_RUST_BIN === '1' && (existsSync(RUST_BIN) || existsSync(fallbackRustBin))
+const useRust = process.env.USE_RUST_BIN === '1' && existsSync(RUST_BIN)
 
 // HOME aislado compartido entre tests: reusa el caché de npm/ntsx para velocidad instantánea.
 const sharedHome = path.join(os.tmpdir(), 'ntsx-shared-test-home')

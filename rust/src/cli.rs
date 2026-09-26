@@ -108,8 +108,7 @@ pub struct RunArgs {
     #[arg(long)]
     pub node: Option<String>,
 
-    /// Script path or trailing arguments.
-    #[arg(allow_hyphen_values = true)]
+    /// Script path.
     pub script: Option<String>,
 
     /// Arguments passed to the script.
