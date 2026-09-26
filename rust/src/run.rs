@@ -23,6 +23,41 @@ fn is_ts_file(p: &str) -> bool {
     p.ends_with(".ts") || p.ends_with(".mts") || p.ends_with(".cts") || p.ends_with(".tsx")
 }
 
+/// Check if a file is encoded in UTF-8 or a non-UTF-8 encoding (UTF-16 LE/BE)
+/// Returns Some(encoding_name) if non-UTF-8, None if UTF-8 or unreadable
+fn detect_non_utf8_encoding(path: &PathBuf) -> Option<String> {
+    use std::io::Read;
+    let mut file = fs::File::open(path).ok()?;
+    let mut buf = [0u8; 4];
+    let bytes_read = file.read(&mut buf).ok()?;
+    
+    if bytes_read < 2 {
+        return None; // Too small to determine
+    }
+    
+    // Check for UTF-16 LE BOM (FF FE)
+    if buf[0] == 0xFF && buf[1] == 0xFE {
+        return Some("UTF-16 LE".to_string());
+    }
+    
+    // Check for UTF-16 BE BOM (FE FF)
+    if buf[0] == 0xFE && buf[1] == 0xFF {
+        return Some("UTF-16 BE".to_string());
+    }
+    
+    // Check for UTF-8 BOM (EF BB BF) - this is valid UTF-8, no warning needed
+    if bytes_read >= 3 && buf[0] == 0xEF && buf[1] == 0xBB && buf[2] == 0xBF {
+        return None;
+    }
+    
+    // Check for null bytes in first 4 bytes (indicates UTF-16 without BOM)
+    if buf[0] == 0x00 || buf[1] == 0x00 {
+        return Some("UTF-16 (no BOM)".to_string());
+    }
+    
+    None
+}
+
 fn split_args(raws: &[String]) -> Vec<String> {
     let mut out = Vec::new();
     for raw in raws {
@@ -109,6 +144,19 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
     }
 
     let result = async {
+        // Check for non-UTF-8 encoding in script files
+        if let Some(ref sp) = script_path {
+            if let Some(encoding) = detect_non_utf8_encoding(sp) {
+                eprintln!(
+                    "ntsx: WARNING: Script file '{}' is encoded in {}. \
+                    esbuild requires UTF-8 encoding. \
+                    Please convert the file to UTF-8 to avoid errors.",
+                    sp.display(),
+                    encoding
+                );
+            }
+        }
+
         let is_ts = if let Some(ref sp) = script_path {
             is_ts_file(&sp.to_string_lossy())
         } else {
@@ -129,8 +177,19 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
         dev_log(opts.debug, &format!("resolved node_bin: {:?}", node_bin));
         dev_log(opts.debug, &format!("node_bin exists: {}", node_bin.exists()));
         dev_log(opts.debug, &format!("node_bin parent: {:?}", node_bin.parent()));
-        let custom_node_dir = if opts.node_version.is_some() && node_bin.as_os_str() != "node" {
-            node_bin.parent().map(|p| p.to_path_buf())
+        
+        // If node_bin is just "node" (relative), find the actual binary using which()
+        let actual_node_bin = if node_bin.as_os_str() == "node" {
+            which("node").unwrap_or(node_bin)
+        } else {
+            node_bin
+        };
+        dev_log(opts.debug, &format!("actual_node_bin: {:?}", actual_node_bin));
+        dev_log(opts.debug, &format!("actual_node_bin exists: {}", actual_node_bin.exists()));
+        dev_log(opts.debug, &format!("actual_node_bin parent: {:?}", actual_node_bin.parent()));
+        
+        let custom_node_dir = if opts.node_version.is_some() && actual_node_bin.as_os_str() != "node" {
+            actual_node_bin.parent().map(|p| p.to_path_buf())
         } else {
             None
         };
@@ -177,7 +236,18 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
                 }
             } else {
                 // No custom Node: find npx in the same directory as node to avoid nvm path issues
-                let npx_path = node_bin.parent().unwrap().join(if cfg!(windows) { "npx.exe" } else { "npx" });
+                let node_dir = actual_node_bin.parent().unwrap();
+                let npx_path = if cfg!(windows) {
+                    // Try npx.exe first, then npx.cmd (nvm uses .cmd)
+                    let npx_exe = node_dir.join("npx.exe");
+                    if npx_exe.exists() {
+                        npx_exe
+                    } else {
+                        node_dir.join("npx.cmd")
+                    }
+                } else {
+                    node_dir.join("npx")
+                };
                 dev_log(opts.debug, &format!("Using npx from node directory: {:?}", npx_path));
                 dev_log(opts.debug, &format!("npx_path exists: {}", npx_path.exists()));
                 child_cmd = Command::new(npx_path);
@@ -202,9 +272,9 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
             }
         } else {
             // JS execution
-            dev_log(opts.debug, &format!("Running JS with node_bin: {:?}", node_bin));
-            dev_log(opts.debug, &format!("node_bin exists: {}", node_bin.exists()));
-            child_cmd = Command::new(&node_bin);
+            dev_log(opts.debug, &format!("Running JS with actual_node_bin: {:?}", actual_node_bin));
+            dev_log(opts.debug, &format!("actual_node_bin exists: {}", actual_node_bin.exists()));
+            child_cmd = Command::new(&actual_node_bin);
 
             for arg in split_args(&opts.node_args) {
                 child_args.push(arg);
@@ -227,8 +297,39 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
         dev_log(opts.debug, &format!("Executing command: {:?} {:?}", child_cmd.get_program(), child_args));
         child_cmd.args(&child_args);
 
-        let mut child = child_cmd.spawn()?;
-        let status = child.wait()?;
+        // Capture stderr to provide better error messages
+        let mut child = child_cmd
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|e| {
+                format!(
+                    "Failed to spawn process '{}': {}. \
+                    Ensure the binary exists and is executable.",
+                    child_cmd.get_program().display(),
+                    e
+                )
+            })?;
+
+        let mut stderr_output = String::new();
+        if let Some(mut stderr) = child.stderr.take() {
+            use std::io::Read;
+            let _ = stderr.read_to_string(&mut stderr_output);
+        }
+
+        let status = child.wait().map_err(|e| {
+            format!(
+                "Failed to wait for process '{}': {}",
+                child_cmd.get_program().display(),
+                e
+            )
+        })?;
+
+        // If the process failed and we captured stderr, show it
+        if !status.success() && !stderr_output.trim().is_empty() {
+            eprintln!("\n--- Process stderr ---\n{}\n----------------------", stderr_output.trim());
+        }
+
         Ok(status.code().unwrap_or(1))
     }
     .await;

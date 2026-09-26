@@ -5,7 +5,7 @@ mod node_version;
 mod run;
 
 use clap::Parser;
-use cli::{CacheCommand, Cli, Command, ToolCommand};
+use cli::{CacheCommand, Cli, Command as CliCommand, ToolCommand};
 use std::process::ExitCode;
 
 #[tokio::main]
@@ -13,7 +13,7 @@ async fn main() -> ExitCode {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Run(args) => {
+        CliCommand::Run(args) => {
             let is_eval = args.eval.is_some();
             let effective_script_args = if is_eval && args.script.is_some() {
                 let mut vec = vec![args.script.clone().unwrap()];
@@ -40,12 +40,12 @@ async fn main() -> ExitCode {
             match run::run(opts).await {
                 Ok(code) => ExitCode::from(code as u8),
                 Err(err) => {
-                    eprintln!("ntsx: {err}");
+                    eprintln!("ntsx: ERROR: {err}");
                     ExitCode::from(1)
                 }
             }
         }
-        Command::Lock(args) => {
+        CliCommand::Lock(args) => {
             let script = args.script;
             let lock_path = format!("{script}.lock");
             let content = serde_json::json!({
@@ -59,7 +59,7 @@ async fn main() -> ExitCode {
             }
             ExitCode::SUCCESS
         }
-        Command::Tool(args) => {
+        CliCommand::Tool(args) => {
             let (tool_name, tool_args) = match args.command {
                 Some(ToolCommand::Run { tool, args }) => (tool, args),
                 None => {
@@ -70,28 +70,35 @@ async fn main() -> ExitCode {
                     (args.tool_args[0].clone(), args.tool_args[1..].to_vec())
                 }
             };
-            let opts = run::RunOptions {
-                with_list: vec![tool_name],
-                script: None,
-                eval_code: None,
-                script_args: tool_args,
-                quiet: true,
-                eval_runtime: "node".to_string(),
-                tsx_args: vec![],
-                node_args: vec![],
-                npm_args: vec![],
-                node_version: None,
-                debug: false,
-            };
-            match run::run(opts).await {
-                Ok(code) => ExitCode::from(code as u8),
+            // Run tool using npx -y <tool> <args...> with system node
+            let node_bin = match node_version::resolve_node_binary(None, true).await {
+                Ok(bin) => bin,
                 Err(err) => {
                     eprintln!("ntsx: {err}");
-                    ExitCode::from(1)
+                    return ExitCode::from(1);
                 }
-            }
+            };
+            let npx_path = node_bin.parent().unwrap().join(if cfg!(windows) { "npx.exe" } else { "npx" });
+            let mut child_cmd = std::process::Command::new(npx_path);
+            child_cmd.arg("-y").arg(&tool_name);
+            child_cmd.args(&tool_args);
+            let mut child = match child_cmd.spawn() {
+                Ok(c) => c,
+                Err(err) => {
+                    eprintln!("ntsx: {err}");
+                    return ExitCode::from(1);
+                }
+            };
+            let status = match child.wait() {
+                Ok(s) => s,
+                Err(err) => {
+                    eprintln!("ntsx: {err}");
+                    return ExitCode::from(1);
+                }
+            };
+            ExitCode::from(status.code().unwrap_or(1) as u8)
         }
-        Command::Cache(args) => match args.command {
+        CliCommand::Cache(args) => match args.command {
             CacheCommand::Clean { force } => match cache::clean_cache(force).await {
                 Ok(res) => {
                     if res.cleared {

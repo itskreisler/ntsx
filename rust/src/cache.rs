@@ -80,6 +80,22 @@ fn dir_size(path: &Path) -> u64 {
     total
 }
 
+fn copy_dir_all(src: &Path, dst: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    fs::create_dir_all(dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let src_path = entry.path();
+        let dst_path = dst.join(entry.file_name());
+        let meta = fs::symlink_metadata(&src_path)?;
+        if meta.is_dir() {
+            copy_dir_all(&src_path, &dst_path)?;
+        } else {
+            fs::copy(&src_path, &dst_path)?;
+        }
+    }
+    Ok(())
+}
+
 pub async fn cache_stats() -> Result<CacheStats, Box<dyn std::error::Error>> {
     let root = get_cache_root();
     if !root.exists() {
@@ -157,12 +173,12 @@ pub async fn stash_node_modules(p: &Path) -> Result<NodeModulesStash, Box<dyn st
             if let Ok(target) = fs::read_link(p) {
                 let cache_root_str = get_cache_root().to_string_lossy().to_string();
                 if target.to_string_lossy().contains(&cache_root_str) {
-                    let _ = fs::remove_file(p);
+                    fs::remove_file(p)?;
                     return Ok(NodeModulesStash {
                         kind: StashKind::Fresh,
                     });
                 }
-                let _ = fs::remove_file(p);
+                fs::remove_file(p)?;
                 return Ok(NodeModulesStash {
                     kind: StashKind::Link(target.to_string_lossy().to_string()),
                 });
@@ -172,7 +188,7 @@ pub async fn stash_node_modules(p: &Path) -> Result<NodeModulesStash, Box<dyn st
                 .parent()
                 .unwrap_or_else(|| Path::new("."))
                 .join(format!(".ntsx-{}.bak", std::process::id()));
-            let _ = fs::rename(p, &backup_path);
+            fs::rename(p, &backup_path)?;
             return Ok(NodeModulesStash {
                 kind: StashKind::Dir(backup_path),
             });
@@ -200,7 +216,10 @@ pub async fn restore_node_modules(
             #[cfg(windows)]
             {
                 use std::os::windows::fs::symlink_dir;
-                let _ = symlink_dir(original_target, p);
+                // Try symlink_dir first, if it fails (requires admin), fall back to copying
+                if let Err(_) = symlink_dir(&original_target, p) {
+                    let _ = copy_dir_all(Path::new(&original_target), p);
+                }
             }
         }
         StashKind::Dir(backup_path) => {
@@ -302,8 +321,14 @@ pub async fn prepare_cache(
     }
     #[cfg(windows)]
     {
-        use std::os::windows::fs::symlink_dir;
-        symlink_dir(&cache_node_modules, &target_node_modules)?;
+        // On Windows, symlink_dir requires admin privileges and Node.js
+        // cannot resolve modules through symlinks reliably.
+        // Use copy_dir_all directly for better compatibility.
+        let _ = fs::remove_file(&target_node_modules);
+        let _ = fs::remove_dir_all(&target_node_modules);
+        eprintln!("[ntsx:debug] copy_dir_all from {:?} to {:?}", cache_node_modules, target_node_modules);
+        copy_dir_all(&cache_node_modules, &target_node_modules)?;
+        eprintln!("[ntsx:debug] copy_dir_all completed");
     }
 
     Ok(stash)

@@ -8,3 +8,7 @@ rust/target
 target
 Cargo.lock
 rust/Cargo.lock
+/.ntsx-*/*
+/.ntsx-*
+.ntsx-*
+/.ntsx-*/
