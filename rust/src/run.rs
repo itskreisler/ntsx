@@ -88,15 +88,19 @@ fn which(bin: &str) -> Option<PathBuf> {
                     return Some(cand_exe);
                 }
             }
-            let candidate = dir.join(bin);
-            if candidate.is_file() {
-                return Some(candidate);
-            }
+            // On Windows, skip files without extension (likely shell scripts from nvm)
             #[cfg(windows)]
             {
                 let cand_cmd = dir.join(format!("{bin}.cmd"));
                 if cand_cmd.is_file() {
                     return Some(cand_cmd);
+                }
+            }
+            #[cfg(not(windows))]
+            {
+                let candidate = dir.join(bin);
+                if candidate.is_file() {
+                    return Some(candidate);
                 }
             }
         }
@@ -235,24 +239,35 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
                     child_args.extend(opts.script_args.iter().cloned());
                 }
             } else {
-                // No custom Node: find npx in the same directory as node to avoid nvm path issues
-                let node_dir = actual_node_bin.parent().unwrap();
-                let npx_path = if cfg!(windows) {
-                    // Try npx.exe first, then npx.cmd (nvm uses .cmd)
-                    let npx_exe = node_dir.join("npx.exe");
-                    if npx_exe.exists() {
-                        npx_exe
-                    } else {
-                        node_dir.join("npx.cmd")
-                    }
+                // No custom Node: try to find tsx globally first, then fallback to npx -y tsx
+                let tsx_bin = which("tsx");
+                dev_log(opts.debug, &format!("which tsx: {:?}", tsx_bin));
+
+                if let Some(tsx_path) = tsx_bin {
+                    // Use global tsx
+                    dev_log(opts.debug, &format!("Using global tsx: {:?}", tsx_path));
+                    child_cmd = Command::new(tsx_path);
                 } else {
-                    node_dir.join("npx")
-                };
-                dev_log(opts.debug, &format!("Using npx from node directory: {:?}", npx_path));
-                dev_log(opts.debug, &format!("npx_path exists: {}", npx_path.exists()));
-                child_cmd = Command::new(npx_path);
-                child_args.push("-y".to_string());
-                child_args.push("tsx".to_string());
+                    // Fallback to npx -y tsx
+                    eprintln!("ntsx: tsx not found globally, using 'npx -y tsx' (slower). Recommendation: install tsx globally with 'npm install -g tsx'");
+                    let node_dir = actual_node_bin.parent().unwrap();
+                    let npx_path = if cfg!(windows) {
+                        // Try npx.exe first, then npx.cmd (nvm uses .cmd)
+                        let npx_exe = node_dir.join("npx.exe");
+                        if npx_exe.exists() {
+                            npx_exe
+                        } else {
+                            node_dir.join("npx.cmd")
+                        }
+                    } else {
+                        node_dir.join("npx")
+                    };
+                    dev_log(opts.debug, &format!("Using npx from node directory: {:?}", npx_path));
+                    dev_log(opts.debug, &format!("npx_path exists: {}", npx_path.exists()));
+                    child_cmd = Command::new(npx_path);
+                    child_args.push("-y".to_string());
+                    child_args.push("tsx".to_string());
+                }
 
                 for arg in split_args(&opts.tsx_args) {
                     child_args.push(arg);
