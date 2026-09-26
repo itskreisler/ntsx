@@ -30,7 +30,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "build:rust": "cd rust && cargo build --release",
+    "build:rust": "cd rust && cargo build --release && mkdir -p bin && cp target/release/ntsx bin/ntsx",
     "dev": "tsx src/index.ts -- --help",
     "typecheck": "tsc --noEmit",
     "test:node": "npm run build && node --test --test-concurrency=1 test/node/*.test.mjs",
