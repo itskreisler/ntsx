@@ -9,17 +9,25 @@ build() {
     local target="$1"
     local platform="$2"
     local extension="$3"
+    local linker="$4"
 
     echo "Building ntsx for $platform ($target)..."
 
     mkdir -p "$BIN/$platform"
 
-    if cargo build --release --target "$target" 2>/dev/null; then
+    local build_cmd=("cargo" "build" "--release" "--target" "$target")
+
+    if [ -n "$linker" ] && which "$linker" >/dev/null 2>&1; then
+        local env_var_name="CARGO_TARGET_$(echo "$target" | tr '[:lower:]-' '[:upper:]_')_LINKER"
+        export "$env_var_name=$linker"
+    fi
+
+    if "${build_cmd[@]}" 2>/dev/null; then
         cp "$ROOT/target/$target/release/ntsx$extension" "$BIN/$platform/ntsx$extension"
         chmod +x "$BIN/$platform/ntsx$extension" 2>/dev/null || true
         echo "✓ Built $BIN/$platform/ntsx$extension ($target)"
     else
-        echo "⚠️ Target $target linker unavailable in build environment; omitting $platform binary build."
+        echo "⚠️ Target $target compilation unavailable in build environment; omitting $platform binary build."
     fi
 }
 
@@ -44,11 +52,10 @@ fi
 mkdir -p "$BIN/$HOST_PLATFORM"
 cp "$ROOT/target/release/ntsx" "$BIN/$HOST_PLATFORM/ntsx" 2>/dev/null || cp "$ROOT/target/release/ntsx.exe" "$BIN/$HOST_PLATFORM/ntsx.exe" 2>/dev/null || true
 
-# Attempt multi-target builds if cross-compilation linkers exist
-build "aarch64-unknown-linux-gnu" "linux-aarch64" ""
-build "x86_64-unknown-linux-gnu" "linux-x86_64" ""
-build "x86_64-pc-windows-gnu" "windows-x86_64" ".exe"
-build "aarch64-pc-windows-gnullvm" "windows-aarch64" ".exe"
+# Build target binaries with available cross-linkers
+build "aarch64-unknown-linux-gnu" "linux-aarch64" "" "aarch64-linux-gnu-gcc"
+build "x86_64-unknown-linux-gnu" "linux-x86_64" "" "x86_64-linux-gnu-gcc"
+build "x86_64-pc-windows-gnu" "windows-x86_64" ".exe" "x86_64-w64-mingw32-gcc"
 
 # Clean up any unnested root bin binaries
 rm -f "$BIN/ntsx" "$BIN/ntsx.exe"
