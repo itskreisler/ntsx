@@ -53,8 +53,8 @@ mkdir -p "$BIN/$HOST_PLATFORM"
 cp "$ROOT/target/release/ntsx" "$BIN/$HOST_PLATFORM/ntsx" 2>/dev/null || cp "$ROOT/target/release/ntsx.exe" "$BIN/$HOST_PLATFORM/ntsx.exe" 2>/dev/null || true
 
 # Build target binaries with available cross-linkers
-build "aarch64-unknown-linux-gnu" "linux-aarch64" "" "aarch64-linux-gnu-gcc"
-build "x86_64-unknown-linux-gnu" "linux-x86_64" "" "x86_64-linux-gnu-gcc"
+#build "aarch64-unknown-linux-gnu" "linux-aarch64" "" "aarch64-linux-gnu-gcc"
+#build "x86_64-unknown-linux-gnu" "linux-x86_64" "" "x86_64-linux-gnu-gcc"
 build "x86_64-pc-windows-gnu" "windows-x86_64" ".exe" "x86_64-w64-mingw32-gcc"
 
 # Clean up any unnested root bin binaries

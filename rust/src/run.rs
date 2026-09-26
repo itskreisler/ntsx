@@ -36,6 +36,12 @@ fn split_args(raws: &[String]) -> Vec<String> {
     out
 }
 
+fn dev_log(debug: bool, msg: &str) {
+    if debug {
+        eprintln!("[ntsx:debug] {}", msg);
+    }
+}
+
 fn which(bin: &str) -> Option<PathBuf> {
     if let Ok(path_env) = env::var("PATH") {
         for dir in env::split_paths(&path_env) {
@@ -74,7 +80,14 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
     } else {
         let s = opts.script.as_ref().unwrap();
         let abs = fs::canonicalize(s).map_err(|_| format!("Script not found: {s}"))?;
-        Some(abs)
+        // On Windows, strip the \\?\ prefix from canonicalized paths to avoid issues with Node.js
+        let path_str = abs.to_string_lossy().to_string();
+        let clean_path = if cfg!(windows) && path_str.starts_with(r"\\?\") {
+            PathBuf::from(&path_str[4..])
+        } else {
+            abs
+        };
+        Some(clean_path)
     };
 
     let target_dir = script_path
@@ -102,12 +115,26 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
             opts.eval_runtime == "tsx"
         };
 
+        dev_log(opts.debug, &format!("is_eval: {}, script_path: {:?}", is_eval, script_path));
+        dev_log(opts.debug, &format!("is_ts: {}", is_ts));
+        dev_log(opts.debug, &format!("node_version: {:?}", opts.node_version));
+        dev_log(opts.debug, &format!("with_list: {:?}", opts.with_list));
+        dev_log(opts.debug, &format!("target_dir: {:?}", target_dir));
+        dev_log(opts.debug, &format!("eval_runtime: {}", opts.eval_runtime));
+        dev_log(opts.debug, &format!("tsx_args: {:?}", opts.tsx_args));
+        dev_log(opts.debug, &format!("node_args: {:?}", opts.node_args));
+        dev_log(opts.debug, &format!("script_args: {:?}", opts.script_args));
+
         let node_bin = resolve_node_binary(opts.node_version.as_deref(), opts.quiet).await?;
+        dev_log(opts.debug, &format!("resolved node_bin: {:?}", node_bin));
+        dev_log(opts.debug, &format!("node_bin exists: {}", node_bin.exists()));
+        dev_log(opts.debug, &format!("node_bin parent: {:?}", node_bin.parent()));
         let custom_node_dir = if opts.node_version.is_some() && node_bin.as_os_str() != "node" {
             node_bin.parent().map(|p| p.to_path_buf())
         } else {
             None
         };
+        dev_log(opts.debug, &format!("custom_node_dir: {:?}", custom_node_dir));
 
     // Modify PATH early so `which` searches the correct PATH (including custom Node dir)
     if let Some(c_dir) = &custom_node_dir {
@@ -115,6 +142,7 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
             let path_sep = if cfg!(windows) { ";" } else { ":" };
             let new_path = format!("{}{path_sep}{path_env}", c_dir.display());
             env::set_var("PATH", &new_path);
+            dev_log(opts.debug, &format!("Modified PATH: {}", new_path));
         }
     }
 
@@ -122,21 +150,15 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
     let mut child_args: Vec<String> = Vec::new();
 
     if is_ts {
-            // Prefer tsx from the custom Node's npm global dir if available
-            let tsx_path = if let Some(c_dir) = &custom_node_dir {
-                // Check for tsx in the custom Node's npm global bin
-                let npm_global = c_dir.join("node_modules").join(".bin").join(if cfg!(windows) { "tsx.cmd" } else { "tsx" });
-                if npm_global.exists() {
-                    Some(npm_global)
-                } else {
-                    which("tsx")
-                }
-            } else {
-                which("tsx")
-            };
-
-            if let Some(tsx_path) = tsx_path {
-                child_cmd = Command::new(tsx_path);
+            // When using --node, always use npx -y tsx with the custom Node binary
+            // to avoid PATH issues with nvm (spaces in paths, etc.)
+            if custom_node_dir.is_some() {
+                // Use npx from the custom Node's directory
+                let npx_path = custom_node_dir.as_ref().unwrap().join(if cfg!(windows) { "npx.cmd" } else { "npx" });
+                dev_log(opts.debug, &format!("Using npx from custom Node: {:?}", npx_path));
+                child_cmd = Command::new(npx_path);
+                child_args.push("-y".to_string());
+                child_args.push("tsx".to_string());
 
                 for arg in split_args(&opts.tsx_args) {
                     child_args.push(arg);
@@ -154,14 +176,19 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
                     child_args.extend(opts.script_args.iter().cloned());
                 }
             } else {
-                child_cmd = Command::new(&node_bin);
+                // No custom Node: find npx in the same directory as node to avoid nvm path issues
+                let npx_path = node_bin.parent().unwrap().join(if cfg!(windows) { "npx.exe" } else { "npx" });
+                dev_log(opts.debug, &format!("Using npx from node directory: {:?}", npx_path));
+                dev_log(opts.debug, &format!("npx_path exists: {}", npx_path.exists()));
+                child_cmd = Command::new(npx_path);
+                child_args.push("-y".to_string());
+                child_args.push("tsx".to_string());
 
-                for arg in split_args(&opts.node_args) {
+                for arg in split_args(&opts.tsx_args) {
                     child_args.push(arg);
                 }
 
                 if is_eval {
-                    child_args.push("--input-type=module".to_string());
                     child_args.push("-e".to_string());
                     child_args.push(opts.eval_code.clone().unwrap());
                     if !opts.script_args.is_empty() {
@@ -174,6 +201,9 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
                 }
             }
         } else {
+            // JS execution
+            dev_log(opts.debug, &format!("Running JS with node_bin: {:?}", node_bin));
+            dev_log(opts.debug, &format!("node_bin exists: {}", node_bin.exists()));
             child_cmd = Command::new(&node_bin);
 
             for arg in split_args(&opts.node_args) {
@@ -194,6 +224,7 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
             }
         }
 
+        dev_log(opts.debug, &format!("Executing command: {:?} {:?}", child_cmd.get_program(), child_args));
         child_cmd.args(&child_args);
 
         let mut child = child_cmd.spawn()?;
