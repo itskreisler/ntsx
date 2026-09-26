@@ -101,7 +101,12 @@ export async function cleanCache(force: boolean): Promise<CleanCacheResult> {
 
   if (!confirmed) return { cleared: false, sizeFreed }
 
-  await fs.rm(CACHE_ROOT, { recursive: true, force: true })
+  try {
+    await fs.rm(CACHE_ROOT, { recursive: true, force: true })
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 100))
+    await fs.rm(CACHE_ROOT, { recursive: true, force: true }).catch(() => {})
+  }
   return { cleared: true, sizeFreed }
 }
 
@@ -124,6 +129,57 @@ function promptConfirm(message: string): Promise<boolean> {
     stdin.once('end', () => resolve(false))
     stdin.once('error', () => resolve(false))
   })
+}
+
+/**
+ * Returns the absolute cache root directory path.
+ *
+ * @returns Absolute cache path string.
+ */
+export function cacheDir(): string {
+  return CACHE_ROOT
+}
+
+/**
+ * Prunes empty workspace folders and temporary backup/lock artifacts from cache.
+ *
+ * @returns A promise resolving to the clean cache operation result.
+ */
+export async function pruneCache(): Promise<CleanCacheResult> {
+  const initialStats = await cacheStats()
+  if (!initialStats.exists) {
+    return { cleared: false, sizeFreed: 0 }
+  }
+
+  let freed = 0
+  try {
+    const workspaceEntries = await fs.readdir(CACHE_ROOT, { withFileTypes: true })
+    for (const ws of workspaceEntries) {
+      if (!ws.isDirectory()) continue
+      const wsPath = path.join(CACHE_ROOT, ws.name)
+      const subEntries = await fs.readdir(wsPath, { withFileTypes: true })
+
+      // Remove stale lock files or temporary backup directories in workspace
+      for (const sub of subEntries) {
+        if (sub.name.endsWith('.bak') || sub.name === 'run.lock') {
+          const itemPath = path.join(wsPath, sub.name)
+          const sz = await dirSize(itemPath)
+          await fs.rm(itemPath, { recursive: true, force: true }).catch(() => {})
+          freed += sz
+        }
+      }
+
+      // If workspace directory is empty after cleaning, remove it
+      const remaining = await fs.readdir(wsPath)
+      if (remaining.length === 0) {
+        await fs.rm(wsPath, { recursive: true, force: true }).catch(() => {})
+      }
+    }
+  } catch {
+    // Permission or read error
+  }
+
+  return { cleared: true, sizeFreed: freed }
 }
 
 export { fmtBytes }

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync, readFileSync, existsSync, symlinkSync, chmodSync, lstatSync } from 'node:fs'
 import path from 'node:path'
-import { BIN, testHome, sandbox, spawnCliAsync, runCli, runCliErr, runCliWithRetry, waitFor } from './helpers.mjs'
+import { BIN, testHome, sandbox, spawnCliAsync, runCli, runCliErr, runCliWithRetry, waitFor } from '../helpers.mjs'
 
 test('resilience: SIGINT restaura node_modules', async () => {
   const dir = sandbox()

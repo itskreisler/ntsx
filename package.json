@@ -30,9 +30,12 @@
   },
   "scripts": {
     "build": "tsup",
+    "build:rust": "cd rust && bash build.sh",
     "dev": "tsx src/index.ts -- --help",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs",
+    "test:node": "npm run build && node --test --test-concurrency=1 test/node/*.test.mjs",
+    "test:rust": "npm run build:rust && USE_RUST_BIN=1 node --test --test-concurrency=1 test/rust/*.test.mjs",
+    "test": "npm run test:node && npm run test:rust",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

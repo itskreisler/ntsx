@@ -50,6 +50,15 @@ ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://npmjs.c
 # pinned versions
 ntsx run --with chalk@^4 script.js arg1
 
+# pin Node version
+ntsx run --node 24 script.ts
+
+# generate lockfile
+ntsx lock script.ts
+
+# run ephemeral tool
+ntsx tool prettier --write script.ts
+
 # pass args to the script
 ntsx run --with axios diario.ts --fecha hoy
 ```
@@ -155,8 +164,10 @@ symlinked in, and when the run ends (signals included) it is restored. It is nev
 
 ```bash
 ntsx cache stats            # workspaces + size
+ntsx cache dir              # print absolute cache path
 ntsx cache clean            # asks for confirmation
 ntsx cache clean --force    # nukes it mercilessly
+ntsx cache prune            # clean up orphaned cache items
 ```
 
 ```
@@ -178,7 +189,26 @@ ntsx cache clean --force    # nukes it mercilessly
 | `--npm-args <flags>` | Flags for the cache's `npm install`. Repeatable |
 | `-q, --quiet` | Silence `npm install` output |
 | `-d, --debug` | Trace the flow: cache paths, commands, symlink, restore |
-| `--node <version>` | Node pin (**reserved** for a future release) |
+| `--node <version>` | Pin Node version (downloads version to `~/.cache/ntsx/node/`) |
+
+## Script Metadata
+
+Scripts can declare dependencies and Node version requirements directly in an inline header:
+
+```typescript
+// /// ntsx
+// dependencies = [
+//   "axios",
+//   "chalk"
+// ]
+// node = "24"
+// ///
+
+import chalk from 'chalk'
+import axios from 'axios'
+```
+
+Now run simply: `ntsx run script.ts`
 
 ## When NOT to use ntsx
 
