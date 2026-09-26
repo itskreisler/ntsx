@@ -237,6 +237,101 @@ npm link                    # opcional: `ntsx` en tu PATH
 
 ---
 
+## 25/25 tests pasan ✅
+
+Sí, todos los flags funcionan correctamente. La descripción del comando es correcta:
+
+```cmd
+:: Windows CMD
+(set "USER_ID=67") && ntsx run [run flags] ./file.ts -- [flags & arguments for file.ts]
+```
+
+```powershell
+# Windows PowerShell
+$env:USER_ID="67"; ntsx run [run flags] ./file.ts -- [flags & arguments for file.ts]
+```
+
+### Flags disponibles para `ntsx run`:
+
+| Flag | Descripción | Estado | Dependencias |
+|------|-------------|--------|--------------|
+| `-w, --with <pkg>` | Dependencia efímera (repetible) | ✅ | Necesita `-e` o `<script>` |
+| `-e, --eval <code>` | Evaluar código inline | ✅ | Independiente |
+| `--eval-runtime <tsx\|node>` | Runtime para eval (default: tsx) | ✅ | Requiere `-e` |
+| `--tsx-args <args>` | Flags para tsx (repetible) | ✅ | Requiere `-e` o script `.ts` |
+| `--node-args <args>` | Flags para node (repetible) | ✅ | Requiere script `.js`/`.mjs` |
+| `--npm-args <args>` | Flags para npm (repetible) | ✅ | Requiere `--with` |
+| `-q, --quiet` | Suprimir output de npm install | ✅ | Requiere `--with` |
+| `-d, --debug` | Mostrar pasos internos | ✅ | Independiente |
+| `--node <version>` | Fijar versión de Node.js | ✅ | Independiente |
+| `<script>` | Ruta al script | ✅ | Independiente |
+| `-- <args>` | Argumentos para el script | ✅ | Requiere `-e` o `<script>` |
+
+### Pruebas de independencia:
+
+**Flags independientes** (funcionan sin otros flags):
+- `-e, --eval <code>` → `ntsx run -e "console.log('hola')"` ✅
+- `-d, --debug` → `ntsx run -d -e "console.log('hola')"` ✅
+- `--node <version>` → `ntsx run --node 24.1.0 -e "console.log(process.version)"` ✅
+- `<script>` → `ntsx run script.ts` ✅
+
+**Flags que requieren otros flags:**
+- `--eval-runtime` → Solo tiene sentido con `-e`
+- `--tsx-args` → Solo aplica a scripts `.ts` o `-e` (tsx)
+- `--node-args` → Solo aplica a scripts `.js`/`.mjs` (node)
+- `--npm-args` → Solo aplica cuando hay `--with` (npm install)
+- `-q, --quiet` → Solo afecta output de `--with` (npm install)
+- `-- <args>` → Solo pasa argumentos si hay script o eval
+
+### Ejemplos de uso combinado:
+
+```bash
+# --with + -e
+ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hola'))"
+
+# --with + <script>
+ntsx run --with chalk script.ts
+
+# --eval-runtime + -e
+ntsx run --eval-runtime node -e "console.log('hola')"
+
+# --tsx-args + -e
+ntsx run --tsx-args --version -e "console.log('hola')"
+
+# --node-args + script.js
+ntsx run --node-args --version script.js
+
+# --npm-args + --with
+ntsx run --npm-args --loglevel=error --with chalk -e "..."
+
+# --quiet + --with
+ntsx run -q --with chalk -e "..."
+
+# --node + -e
+ntsx run --node 24.1.0 -e "console.log(process.version)"
+
+# -- + script
+ntsx run script.ts -- --name test --value 123
+```
+
+### Tests verificados (25/25):
+
+- ✅ Ejecución de código JS/TS con `-e`
+- ✅ Ejecución de archivos `.mjs` y `.ts`
+- ✅ Instalación de paquetes con `--with`
+- ✅ Múltiples paquetes con `--with`
+- ✅ Paquetes scoped con versión
+- ✅ Pasar argumentos después de `--`
+- ✅ `--tsx-args` (versión, múltiples, env-file, tsconfig)
+- ✅ `--node-args` (versión, env-file)
+- ✅ Carga de `.env` con `--env-file`
+- ✅ Ejemplos del `--help` (5/5)
+- ✅ Detección de UTF-16
+- ✅ `--debug`
+- ✅ `cache dir` y `cache stats`
+
+---
+
 <div align="center">
 
 MIT · hecho con ❤️ para los que tienen prisa

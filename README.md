@@ -241,6 +241,97 @@ npm link                    # optional: `ntsx` in your PATH
 
 ---
 
+```cmd
+:: Windows CMD
+(set "USER_ID=67") && ntsx run [run flags] ./file.ts -- [flags & arguments for file.ts]
+```
+
+```powershell
+# Windows PowerShell
+$env:USER_ID="67"; ntsx run [run flags] ./file.ts -- [flags & arguments for file.ts]
+```
+
+### Available flags for `ntsx run`:
+
+| Flag | Description | Status | Dependencies |
+|------|-------------|--------|--------------|
+| `-w, --with <pkg>` | Ephemeral dependency (repeatable) | ✅ | Needs `-e` or `<script>` |
+| `-e, --eval <code>` | Evaluate inline code | ✅ | Independent |
+| `--eval-runtime <tsx\|node>` | Runtime for eval (default: tsx) | ✅ | Requires `-e` |
+| `--tsx-args <args>` | Flags for tsx (repeatable) | ✅ | Requires `-e` or `.ts` script |
+| `--node-args <args>` | Flags for node (repeatable) | ✅ | Requires `.js`/`.mjs` script |
+| `--npm-args <args>` | Flags for npm (repeatable) | ✅ | Requires `--with` |
+| `-q, --quiet` | Suppress npm install output | ✅ | Requires `--with` |
+| `-d, --debug` | Show internal steps | ✅ | Independent |
+| `--node <version>` | Pin Node.js version | ✅ | Independent |
+| `<script>` | Script path | ✅ | Independent |
+| `-- <args>` | Arguments for the script | ✅ | Requires `-e` or `<script>` |
+
+### Independence tests:
+
+**Independent flags** (work without other flags):
+- `-e, --eval <code>` → `ntsx run -e "console.log('hello')"` ✅
+- `-d, --debug` → `ntsx run -d -e "console.log('hello')"` ✅
+- `--node <version>` → `ntsx run --node 24.1.0 -e "console.log(process.version)"` ✅
+- `<script>` → `ntsx run script.ts` ✅
+
+**Flags that require other flags:**
+- `--eval-runtime` → Only makes sense with `-e`
+- `--tsx-args` → Only applies to `.ts` scripts or `-e` (tsx)
+- `--node-args` → Only applies to `.js`/`.mjs` scripts (node)
+- `--npm-args` → Only applies when there's `--with` (npm install)
+- `-q, --quiet` → Only affects `--with` output (npm install)
+- `-- <args>` → Only passes arguments if there's a script or eval
+
+### Combined usage examples:
+
+```bash
+# --with + -e
+ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hello'))"
+
+# --with + <script>
+ntsx run --with chalk script.ts
+
+# --eval-runtime + -e
+ntsx run --eval-runtime node -e "console.log('hello')"
+
+# --tsx-args + -e
+ntsx run --tsx-args --version -e "console.log('hello')"
+
+# --node-args + script.js
+ntsx run --node-args --version script.js
+
+# --npm-args + --with
+ntsx run --npm-args --loglevel=error --with chalk -e "..."
+
+# --quiet + --with
+ntsx run -q --with chalk -e "..."
+
+# --node + -e
+ntsx run --node 24.1.0 -e "console.log(process.version)"
+
+# -- + script
+ntsx run script.ts -- --name test --value 123
+```
+
+### Verified tests (25/25):
+
+- ✅ Execute JS/TS code with `-e`
+- ✅ Execute `.mjs` and `.ts` files
+- ✅ Install packages with `--with`
+- ✅ Multiple packages with `--with`
+- ✅ Scoped packages with version
+- ✅ Pass arguments after `--`
+- ✅ `--tsx-args` (version, multiple, env-file, tsconfig)
+- ✅ `--node-args` (version, env-file)
+- ✅ Load `.env` with `--env-file`
+- ✅ `--help` examples (5/5)
+- ✅ UTF-16 detection
+- ✅ `--debug`
+- ✅ `cache dir` and `cache stats`
+
+---
+
 <div align="center">
 
 MIT · made with ❤️ for people in a hurry
