@@ -4,10 +4,22 @@ import { mkdtempSync, chmodSync, rmSync, existsSync, mkdirSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-export const RUST_BIN = path.resolve('rust/bin/ntsx')
+function getPlatformDir() {
+  const plat = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'macos' : 'linux'
+  const arch = process.arch === 'arm64' ? 'aarch64' : 'x86_64'
+  return `${plat}-${arch}`
+}
+
+const platformDir = getPlatformDir()
+const ext = process.platform === 'win32' ? '.exe' : ''
+
+const platformRustBin = path.resolve(`rust/bin/${platformDir}/ntsx${ext}`)
+const fallbackRustBin = path.resolve(`rust/bin/ntsx${ext}`)
+
+export const RUST_BIN = existsSync(platformRustBin) ? platformRustBin : fallbackRustBin
 export const BIN = path.resolve('dist/ntsx.js')
 
-const useRust = process.env.USE_RUST_BIN === '1' && existsSync(RUST_BIN)
+const useRust = process.env.USE_RUST_BIN === '1' && (existsSync(RUST_BIN) || existsSync(fallbackRustBin))
 
 // HOME aislado compartido entre tests: reusa el caché de npm/ntsx para velocidad instantánea.
 const sharedHome = path.join(os.tmpdir(), 'ntsx-shared-test-home')
