@@ -26,6 +26,10 @@ build() {
         cp "$ROOT/target/$target/release/ntsx$extension" "$BIN/$platform/ntsx$extension"
         chmod +x "$BIN/$platform/ntsx$extension" 2>/dev/null || true
         echo "✓ Built $BIN/$platform/ntsx$extension ($target)"
+    elif which cargo-zigbuild >/dev/null 2>&1 && cargo zigbuild --release --target "$target" 2>/dev/null; then
+        cp "$ROOT/target/$target/release/ntsx$extension" "$BIN/$platform/ntsx$extension"
+        chmod +x "$BIN/$platform/ntsx$extension" 2>/dev/null || true
+        echo "✓ Built $BIN/$platform/ntsx$extension ($target via cargo-zigbuild)"
     else
         echo "⚠️ Target $target compilation unavailable in build environment; omitting $platform binary build."
     fi
@@ -54,7 +58,7 @@ cp "$ROOT/target/release/ntsx" "$BIN/$HOST_PLATFORM/ntsx" 2>/dev/null || cp "$RO
 build "x86_64-unknown-linux-gnu" "linux-x86_64" "" "x86_64-linux-gnu-gcc"
 build "aarch64-unknown-linux-gnu" "linux-aarch64" "" "aarch64-linux-gnu-gcc"
 build "x86_64-pc-windows-gnu" "windows-x86_64" ".exe" "x86_64-w64-mingw32-gcc"
-build "aarch64-pc-windows-gnullvm" "windows-aarch64" ".exe" "aarch64-w64-mingw32-gcc"
+build "aarch64-pc-windows-gnullvm" "windows-aarch64" ".exe" ""
 
 # Clean up any unnested root bin binaries
 rm -f "$BIN/ntsx" "$BIN/ntsx.exe"
