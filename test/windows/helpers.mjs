@@ -1,5 +1,5 @@
 /**
- * Helpers específicos para tests del binario Rust en Windows (entorno nvm / cmd / powershell / %USERPROFILE%)
+ * Helpers específicos para tests del binario Rust en entorno Windows (ntsx.exe, cmd.exe, PowerShell, %USERPROFILE%)
  */
 import { after } from 'node:test'
 import { spawn, spawnSync } from 'node:child_process'
@@ -45,11 +45,14 @@ after(() => {
  */
 export function spawnCli(args, opts = {}) {
     try {
-        return spawnSync(RUST_BIN, args, {
+        const isWine = process.platform !== 'win32'
+        const binToRun = isWine ? 'wine' : RUST_BIN
+        const cmdArgs = isWine ? [RUST_BIN, ...args] : args
+        return spawnSync(binToRun, cmdArgs, {
             cwd: opts.cwd,
             encoding: 'utf8',
             input: opts.input,
-            env: { ...process.env, HOME: testHome, USERPROFILE: testHome },
+            env: { ...process.env, HOME: testHome, USERPROFILE: testHome, WINEDEBUG: '-all' },
             timeout: opts.timeout || 60000,
         })
     } catch (err) {
@@ -61,9 +64,12 @@ export function spawnCli(args, opts = {}) {
  * Ejecuta el CLI de ntsx de forma asíncrona
  */
 export function spawnCliAsync(args, opts = {}) {
-    return spawn(RUST_BIN, args, {
+    const isWine = process.platform !== 'win32'
+    const binToRun = isWine ? 'wine' : RUST_BIN
+    const cmdArgs = isWine ? [RUST_BIN, ...args] : args
+    return spawn(binToRun, cmdArgs, {
         cwd: opts.cwd,
-        env: { ...process.env, HOME: testHome, USERPROFILE: testHome },
+        env: { ...process.env, HOME: testHome, USERPROFILE: testHome, WINEDEBUG: '-all' },
     })
 }
 

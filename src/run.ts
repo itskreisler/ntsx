@@ -142,10 +142,12 @@ export async function run(opts: RunOptions): Promise<number> {
   // Extract metadata from script comments if scriptPath is present
   let metadataDeps: string[] = []
   let metadataNodeVersion: string | undefined
+  let metadataRuntime: 'node' | 'tsx' | undefined
   if (scriptPath) {
     const meta = await parseScriptMetadata(scriptPath)
     metadataDeps = meta.dependencies
     metadataNodeVersion = meta.node
+    metadataRuntime = meta.runtime
   }
 
   const effectiveNodeVersion = parsed.nodeVersion || metadataNodeVersion
@@ -176,7 +178,11 @@ export async function run(opts: RunOptions): Promise<number> {
       stash = prepped.stash
     }
 
-    const isTs = scriptPath !== null ? isTsFile(scriptPath) : parsed.evalRuntime === 'tsx'
+    const isTs = metadataRuntime
+      ? metadataRuntime === 'tsx'
+      : scriptPath !== null
+        ? isTsFile(scriptPath)
+        : parsed.evalRuntime === 'tsx'
     let cmd: string
     let args: string[]
 

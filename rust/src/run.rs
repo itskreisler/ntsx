@@ -49,6 +49,7 @@ pub struct LockfileData {
 pub struct ScriptMetadata {
     pub dependencies: Vec<String>,
     pub node: Option<String>,
+    pub runtime: Option<String>,
 }
 
 pub struct CleanupGuard {
@@ -94,83 +95,149 @@ pub fn read_lockfile(script_path: &Path) -> Option<LockfileData> {
     serde_json::from_str(&content).ok()
 }
 
-pub fn parse_script_metadata(script_path: &Path) -> ScriptMetadata {
+pub fn parse_script_metadata(script_path: &Path) -> Result<ScriptMetadata, String> {
     let content = match fs::read_to_string(script_path) {
         Ok(c) => c,
-        Err(_) => return ScriptMetadata::default(),
+        Err(_) => return Ok(ScriptMetadata::default()),
     };
     parse_metadata_string(&content)
 }
 
-pub fn parse_metadata_string(content: &str) -> ScriptMetadata {
-    let mut in_block = false;
-    let mut block_lines = Vec::new();
+pub fn parse_metadata_string(content: &str) -> Result<ScriptMetadata, String> {
+    let mut target_block: Option<String> = None;
+    let mut in_jsdoc = false;
+    let mut current_block = String::new();
 
     for line in content.lines() {
         let trimmed = line.trim();
-        let is_start = trimmed.starts_with("// /// ntsx")
-            || trimmed.starts_with("/// ntsx")
-            || (trimmed.starts_with("//") && trimmed.contains("/// ntsx"));
-
-        if is_start {
-            in_block = true;
+        if trimmed.starts_with("/**") {
+            in_jsdoc = true;
+            current_block.clear();
+            current_block.push_str(line);
+            current_block.push('\n');
+            if trimmed.contains("*/") {
+                in_jsdoc = false;
+                if current_block.contains("@ntsx") {
+                    target_block = Some(current_block.clone());
+                    break;
+                }
+            }
             continue;
         }
 
-        if in_block {
-            let is_end = trimmed == "// ///"
-                || trimmed == "///"
-                || trimmed == "// ///ntsx"
-                || trimmed == "///ntsx";
-            if is_end {
-                break;
-            }
-            let comment_content = trimmed
-                .strip_prefix("// ")
-                .or_else(|| trimmed.strip_prefix("//"))
-                .or_else(|| trimmed.strip_prefix("/// "))
-                .or_else(|| trimmed.strip_prefix("///"))
-                .unwrap_or(trimmed);
-            block_lines.push(comment_content);
-        }
-    }
-
-    if block_lines.is_empty() {
-        return ScriptMetadata::default();
-    }
-
-    let mut dependencies = Vec::new();
-    let mut node = None;
-
-    let full_block = block_lines.join("\n");
-
-    if let Some(deps_start) = full_block.find("dependencies") {
-        if let Some(bracket_start) = full_block[deps_start..].find('[') {
-            let start_idx = deps_start + bracket_start;
-            if let Some(bracket_end) = full_block[start_idx..].find(']') {
-                let raw_deps = &full_block[start_idx + 1..start_idx + bracket_end];
-                for token in raw_deps.split(',') {
-                    let cleaned = token.trim().trim_matches(|c| c == '\'' || c == '"').trim();
-                    if !cleaned.is_empty() {
-                        dependencies.push(cleaned.to_string());
-                    }
+        if in_jsdoc {
+            current_block.push_str(line);
+            current_block.push('\n');
+            if trimmed.contains("*/") {
+                in_jsdoc = false;
+                if current_block.contains("@ntsx") {
+                    target_block = Some(current_block.clone());
+                    break;
                 }
             }
         }
     }
 
-    if let Some(node_idx) = full_block.find("node") {
-        let sub = &full_block[node_idx..];
-        if let Some(eq_idx) = sub.find('=') {
-            let val_str = sub[eq_idx + 1..].lines().next().unwrap_or("").trim();
-            let cleaned = val_str.trim_matches(|c| c == '\'' || c == '"' || c == ';').trim();
-            if !cleaned.is_empty() {
-                node = Some(cleaned.to_string());
+    let block = match target_block {
+        Some(b) => b,
+        None => return Ok(ScriptMetadata::default()),
+    };
+
+    let mut dependencies = Vec::new();
+    let mut node = None;
+    let mut runtime = None;
+
+    for line in block.lines() {
+        let cleaned = line
+            .trim()
+            .trim_start_matches("/**")
+            .trim_end_matches("*/")
+            .trim_start_matches('*')
+            .trim();
+
+        if cleaned.is_empty() {
+            continue;
+        }
+
+        if let Some(idx) = cleaned.find("@with") {
+            let after = cleaned[idx + 5..].trim();
+            let raw_spec = after
+                .trim_end_matches("*/")
+                .trim()
+                .trim_matches(|c| c == '\'' || c == '"');
+
+            if raw_spec.is_empty() {
+                return Err(format!("Invalid @with syntax in line: '{cleaned}'"));
+            }
+
+            let spec_token = raw_spec.split_whitespace().next().unwrap_or("");
+            if spec_token.is_empty() {
+                return Err(format!("Invalid package spec in @with: '{raw_spec}'"));
+            }
+
+            let is_scoped = spec_token.starts_with('@');
+            let at_idx = if is_scoped {
+                spec_token[1..].find('@').map(|i| i + 1)
+            } else {
+                spec_token.find('@')
+            };
+
+            let formatted_spec = if at_idx.is_none() {
+                format!("{spec_token}@latest")
+            } else {
+                spec_token.to_string()
+            };
+
+            if !dependencies.contains(&formatted_spec) {
+                dependencies.push(formatted_spec);
+            }
+        }
+
+        if let Some(idx) = cleaned.find("@node") {
+            let after = cleaned[idx + 5..].trim();
+            if let (Some(start), Some(end)) = (after.find('{'), after.find('}')) {
+                if end > start {
+                    let ver = after[start + 1..end].trim().to_string();
+                    if let Some(ref existing) = node {
+                        if existing != &ver {
+                            return Err(format!(
+                                "Incompatible duplicate @node declarations: '{existing}' and '{ver}'"
+                            ));
+                        }
+                    }
+                    node = Some(ver);
+                }
+            }
+        }
+
+        if let Some(idx) = cleaned.find("@runtime") {
+            let after = cleaned[idx + 8..].trim();
+            if let (Some(start), Some(end)) = (after.find('{'), after.find('}')) {
+                if end > start {
+                    let rt = after[start + 1..end].trim().to_lowercase();
+                    if rt != "node" && rt != "tsx" {
+                        return Err(format!(
+                            "Invalid @runtime value: '{rt}'. Allowed values are 'node' or 'tsx'."
+                        ));
+                    }
+                    if let Some(ref existing) = runtime {
+                        if existing != &rt {
+                            return Err(format!(
+                                "Incompatible duplicate @runtime declarations: '{existing}' and '{rt}'"
+                            ));
+                        }
+                    }
+                    runtime = Some(rt);
+                }
             }
         }
     }
 
-    ScriptMetadata { dependencies, node }
+    Ok(ScriptMetadata {
+        dependencies,
+        node,
+        runtime,
+    })
 }
 
 pub async fn generate_lockfile(
@@ -192,7 +259,7 @@ pub async fn generate_lockfile(
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|| PathBuf::from("."));
 
-    let meta = parse_script_metadata(&clean_script);
+    let meta = parse_script_metadata(&clean_script).unwrap_or_default();
     let mut combined_specs = Vec::new();
     combined_specs.extend(with_list.iter().cloned());
     for dep in meta.dependencies {
@@ -372,11 +439,13 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
         .and_then(|p| p.parent().map(|p| p.to_path_buf()))
         .unwrap_or_else(|| env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
 
-    let (metadata_deps, metadata_node) = if let Some(ref sp) = script_path {
-        let meta = parse_script_metadata(sp);
-        (meta.dependencies, meta.node)
+    let (metadata_deps, metadata_node, metadata_runtime) = if let Some(ref sp) = script_path {
+        match parse_script_metadata(sp) {
+            Ok(meta) => (meta.dependencies, meta.node, meta.runtime),
+            Err(err) => return Err(format!("Metadata error in {}: {err}", sp.display()).into()),
+        }
     } else {
-        (Vec::new(), None)
+        (Vec::new(), None, None)
     };
 
     let effective_node_version = opts.node_version.or(metadata_node);
@@ -435,7 +504,9 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
             }
         }
 
-        let is_ts = if let Some(ref sp) = script_path {
+        let is_ts = if let Some(ref rt) = metadata_runtime {
+            rt == "tsx"
+        } else if let Some(ref sp) = script_path {
             is_ts_file(&sp.to_string_lossy())
         } else {
             opts.eval_runtime == "tsx"

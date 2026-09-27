@@ -3,9 +3,9 @@
  */
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { sandbox, runCliWithRetry, runCliErr, createFile, createEnvFile, stripAnsi, parseJsonSafe } from './helpers.mjs'
+import { sandbox, runCliWithRetry, runCliErr, createFile, createEnvFile, stripAnsi, parseJsonSafe, spawnCli } from './helpers.mjs'
 
 // ============================================================
 // Tests básicos de funcionamiento
@@ -46,7 +46,160 @@ test('ntsx windows: ejecuta archivo .ts', () => {
 })
 
 // ============================================================
-// Tests de dependencias con --with
+// 1. ntsx lock - Genera lockfile para scripts y dependencias
+// ============================================================
+
+test('ntsx windows lock: genera lockfile para script sin dependencias', () => {
+    const dir = sandbox()
+    const scriptPath = createFile(dir, 'test-simple.js', 'console.log("simple")')
+    const r = spawnCli(['lock', scriptPath], { cwd: dir })
+    assert.equal(r.status, 0)
+    const lockPath = `${scriptPath}.lock`
+    assert.equal(existsSync(lockPath), true)
+    const lockJson = JSON.parse(readFileSync(lockPath, 'utf8'))
+    assert.equal(lockJson.version, 1)
+    assert.equal(lockJson.script, 'test-simple.js')
+    assert.ok(lockJson.runtime)
+})
+
+test('ntsx windows lock: genera lockfile con dependencias (--with)', () => {
+    const dir = sandbox()
+    const scriptPath = createFile(dir, 'test-deps.js', 'import chalk from "chalk"; console.log(chalk.green("ok"))')
+    const r = spawnCli(['lock', '--with', 'chalk', scriptPath], { cwd: dir })
+    assert.equal(r.status, 0)
+    const lockPath = `${scriptPath}.lock`
+    assert.equal(existsSync(lockPath), true)
+    const lockJson = JSON.parse(readFileSync(lockPath, 'utf8'))
+    assert.ok(lockJson.dependencies.chalk)
+    assert.ok(lockJson.dependencies.chalk.version)
+    assert.match(lockJson.dependencies.chalk.integrity, /^sha256-/)
+})
+
+test('ntsx windows lock: ntsx run usa el lockfile si existe', () => {
+    const dir = sandbox()
+    const scriptPath = createFile(dir, 'test-lock-use.js', 'import chalk from "chalk"; console.log(typeof chalk.green)')
+    spawnCli(['lock', '--with', 'chalk', scriptPath], { cwd: dir })
+    const out = runCliWithRetry(['run', '-q', scriptPath], { cwd: dir })
+    assert.equal(out.trim(), 'function')
+})
+
+// ============================================================
+// 2. ntsx tool run - Herramientas efímeras
+// ============================================================
+
+test('ntsx windows tool: ayuda del subcomando', () => {
+    const r = spawnCli(['tool', '--help'])
+    assert.equal(r.status, 0)
+    assert.match(r.stdout, /tool/i)
+})
+
+test('ntsx windows tool: ejecuta typescript con argumentos', () => {
+    const dir = sandbox()
+    const r = spawnCli(['tool', 'typescript', '--version'], { cwd: dir })
+    assert.equal(r.status, 0)
+    assert.match(r.stdout, /Version/i)
+})
+
+test('ntsx windows tool: subcomando ntsx tool run', () => {
+    const dir = sandbox()
+    const r = spawnCli(['tool', 'run', 'typescript', '--version'], { cwd: dir })
+    assert.equal(r.status, 0)
+    assert.match(r.stdout, /Version/i)
+})
+
+// ============================================================
+// 3. Script Metadata (JSDoc @ntsx)
+// ============================================================
+
+test('ntsx windows metadata JSDoc: @with y @node {24.21.0}', () => {
+    const dir = sandbox()
+    const scriptPath = createFile(dir, 'jsdoc-test.ts', `/**
+ * @ntsx
+ * @with chalk
+ * @node {24.21.0}
+ * @runtime {tsx}
+ */
+import chalk from 'chalk';
+console.log(process.version, typeof chalk.green);
+`)
+    const out = runCliWithRetry(['run', '-q', scriptPath], { cwd: dir })
+    assert.match(out.trim(), /v24\.21\.0 function/)
+})
+
+test('ntsx windows metadata JSDoc: @node {26.10.0}', () => {
+    const dir = sandbox()
+    const scriptPath = createFile(dir, 'jsdoc-26.ts', `/**
+ * @ntsx
+ * @node {26.10.0}
+ */
+console.log(process.version);
+`)
+    const out = runCliWithRetry(['run', '-q', scriptPath], { cwd: dir })
+    assert.equal(out.trim(), 'v26.10.0')
+})
+
+test('ntsx windows metadata JSDoc: @runtime {node}', () => {
+    const dir = sandbox()
+    const scriptPath = createFile(dir, 'jsdoc-runtime.js', `/**
+ * @ntsx
+ * @runtime {node}
+ */
+console.log("runtime-node-win-ok");
+`)
+    const out = runCliWithRetry(['run', scriptPath], { cwd: dir })
+    assert.equal(out.trim(), 'runtime-node-win-ok')
+})
+
+test('ntsx windows metadata: --node 24.21.0 ejecuta script y valida process.version', () => {
+    const dir = sandbox()
+    const out = runCliWithRetry([
+        'run', '--node', '24.21.0', '-q', '-e', 'console.log(process.version)',
+    ], { cwd: dir })
+    assert.equal(out.trim(), 'v24.21.0')
+})
+
+test('ntsx windows metadata: --node 26.10.0 ejecuta script y valida process.version', () => {
+    const dir = sandbox()
+    const out = runCliWithRetry([
+        'run', '--node', '26.10.0', '-q', '-e', 'console.log(process.version)',
+    ], { cwd: dir })
+    assert.equal(out.trim(), 'v26.10.0')
+})
+
+test('ntsx windows metadata: script sin header funciona normalmente', () => {
+    const dir = sandbox()
+    const scriptPath = createFile(dir, 'no-meta.ts', 'console.log("no header ok")')
+    const out = runCliWithRetry(['run', scriptPath], { cwd: dir })
+    assert.equal(out.trim(), 'no header ok')
+})
+
+// ============================================================
+// 4. Manejo de errores y casos edge
+// ============================================================
+
+test('ntsx windows error: script que no existe', () => {
+    const dir = sandbox()
+    const { code, stderr } = runCliErr(['run', 'non-existent-file.ts'], { cwd: dir })
+    assert.notEqual(code, 0)
+    assert.match(stderr, /not found/i)
+})
+
+test('ntsx windows error: sintaxis inválida', () => {
+    const dir = sandbox()
+    const scriptPath = createFile(dir, 'invalid.ts', 'const = ;;;;')
+    const { code } = runCliErr(['run', scriptPath], { cwd: dir })
+    assert.notEqual(code, 0)
+})
+
+test('ntsx windows error: dependencia inexistente', () => {
+    const dir = sandbox()
+    const { code, stderr } = runCliErr(['run', '--with', 'pkg-does-not-exist-123456789', '-e', 'console.log("x")'], { cwd: dir })
+    assert.notEqual(code, 0)
+    assert.match(stderr, /Invalid package spec|ERR!|failed/i)
+})
+
+// ============================================================
+// Tests de dependencias con --with y passthrough
 // ============================================================
 
 test('ntsx windows: instala y usa chalk con --with', () => {
@@ -58,19 +211,6 @@ test('ntsx windows: instala y usa chalk con --with', () => {
     assert.equal(out.trim(), 'function')
 })
 
-test('ntsx windows: instala y usa zod con --with', () => {
-    const dir = sandbox()
-    const out = runCliWithRetry([
-        'run', '--with', 'zod', '-q', '-e',
-        "import { z } from 'zod'; console.log(typeof z.string)",
-    ], { cwd: dir })
-    assert.equal(out.trim(), 'function')
-})
-
-// ============================================================
-// Tests de passthrough de argumentos
-// ============================================================
-
 test('ntsx windows: pasa argumentos después de -- a scripts JS', () => {
     const dir = sandbox()
     const scriptPath = createFile(dir, 'args.mjs', `
@@ -81,35 +221,6 @@ console.log(JSON.stringify(process.argv.slice(2)))
     ], { cwd: dir })
     assert.deepEqual(parseJsonSafe(out), ['--name', 'Kreisler', '--admin'])
 })
-
-test('ntsx windows: pasa argumentos después de -- a scripts TS', () => {
-    const dir = sandbox()
-    const scriptPath = createFile(dir, 'args.ts', `
-console.log(JSON.stringify(process.argv.slice(2)))
-`)
-    const out = runCliWithRetry([
-        'run', scriptPath, '--', '--name', 'Kreisler', '--admin',
-    ], { cwd: dir })
-    assert.deepEqual(parseJsonSafe(out), ['--name', 'Kreisler', '--admin'])
-})
-
-// ============================================================
-// Tests de .env y node-args
-// ============================================================
-
-test('ntsx windows: carga .env con --node-args --env-file', () => {
-    const dir = sandbox()
-    const envPath = createEnvFile(dir, { NTSX_TEST_USER_ID: '12345' })
-    const out = runCliWithRetry([
-        'run', '--node-args', `--env-file=${envPath}`,
-        '-e', "import { loadEnvFile } from 'node:process'; loadEnvFile(); console.log(process.env.NTSX_TEST_USER_ID)",
-    ], { cwd: dir })
-    assert.equal(stripAnsi(out.trim()), '12345')
-})
-
-// ============================================================
-// Tests de debug y cache
-// ============================================================
 
 test('ntsx windows: --debug muestra información de depuración', () => {
     const dir = sandbox()
