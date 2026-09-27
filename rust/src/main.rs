@@ -46,18 +46,16 @@ async fn main() -> ExitCode {
             }
         }
         CliCommand::Lock(args) => {
-            let script = args.script;
-            let lock_path = format!("{script}.lock");
-            let content = serde_json::json!({
-                "script": script,
-                "version": "1.0.0",
-                "dependencies": {}
-            });
-            if let Ok(json) = serde_json::to_string_pretty(&content) {
-                let _ = std::fs::write(&lock_path, json);
-                println!("Lockfile generated at {lock_path}");
+            match run::generate_lockfile(&args.script, &args.with).await {
+                Ok(lock_path) => {
+                    println!("Lockfile generated at {lock_path}");
+                    ExitCode::SUCCESS
+                }
+                Err(err) => {
+                    eprintln!("ntsx: {err}");
+                    ExitCode::from(1)
+                }
             }
-            ExitCode::SUCCESS
         }
         CliCommand::Tool(args) => {
             let (tool_name, tool_args) = match args.command {
@@ -70,7 +68,7 @@ async fn main() -> ExitCode {
                     (args.tool_args[0].clone(), args.tool_args[1..].to_vec())
                 }
             };
-            // Run tool using npx -y <tool> <args...> with system node
+
             let node_bin = match node_version::resolve_node_binary(None, true).await {
                 Ok(bin) => bin,
                 Err(err) => {
@@ -78,10 +76,43 @@ async fn main() -> ExitCode {
                     return ExitCode::from(1);
                 }
             };
-            let npx_path = node_bin.parent().unwrap().join(if cfg!(windows) { "npx.exe" } else { "npx" });
-            let mut child_cmd = std::process::Command::new(npx_path);
+
+            let npx_cmd = if cfg!(windows) {
+                if let Some(parent) = node_bin.parent() {
+                    let npx_exe = parent.join("npx.exe");
+                    if npx_exe.exists() {
+                        npx_exe
+                    } else {
+                        let npx_cmd_path = parent.join("npx.cmd");
+                        if npx_cmd_path.exists() {
+                            npx_cmd_path
+                        } else {
+                            std::path::PathBuf::from("npx.cmd")
+                        }
+                    }
+                } else {
+                    std::path::PathBuf::from("npx.cmd")
+                }
+            } else {
+                if let Some(parent) = node_bin.parent() {
+                    let npx = parent.join("npx");
+                    if npx.exists() {
+                        npx
+                    } else {
+                        std::path::PathBuf::from("npx")
+                    }
+                } else {
+                    std::path::PathBuf::from("npx")
+                }
+            };
+
+            let mut child_cmd = std::process::Command::new(npx_cmd);
             child_cmd.arg("-y").arg(&tool_name);
             child_cmd.args(&tool_args);
+            child_cmd.stdout(std::process::Stdio::inherit());
+            child_cmd.stderr(std::process::Stdio::inherit());
+            child_cmd.stdin(std::process::Stdio::inherit());
+
             let mut child = match child_cmd.spawn() {
                 Ok(c) => c,
                 Err(err) => {

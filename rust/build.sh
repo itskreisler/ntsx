@@ -38,13 +38,11 @@ cargo build --release
 HOST_TARGET="$(rustc -vV | grep host | cut -d' ' -f2)"
 HOST_PLATFORM="linux-x86_64"
 if [[ "$HOST_TARGET" == *"aarch64"* ]]; then
-    if [[ "$HOST_TARGET" == *"apple"* ]]; then
-        HOST_PLATFORM="macos-aarch64"
+    if [[ "$HOST_TARGET" == *"windows"* ]]; then
+        HOST_PLATFORM="windows-aarch64"
     else
         HOST_PLATFORM="linux-aarch64"
     fi
-elif [[ "$HOST_TARGET" == *"apple"* ]]; then
-    HOST_PLATFORM="macos-x86_64"
 elif [[ "$HOST_TARGET" == *"windows"* ]]; then
     HOST_PLATFORM="windows-x86_64"
 fi
@@ -53,9 +51,10 @@ mkdir -p "$BIN/$HOST_PLATFORM"
 cp "$ROOT/target/release/ntsx" "$BIN/$HOST_PLATFORM/ntsx" 2>/dev/null || cp "$ROOT/target/release/ntsx.exe" "$BIN/$HOST_PLATFORM/ntsx.exe" 2>/dev/null || true
 
 # Build target binaries with available cross-linkers
-#build "aarch64-unknown-linux-gnu" "linux-aarch64" "" "aarch64-linux-gnu-gcc"
-#build "x86_64-unknown-linux-gnu" "linux-x86_64" "" "x86_64-linux-gnu-gcc"
+build "x86_64-unknown-linux-gnu" "linux-x86_64" "" "x86_64-linux-gnu-gcc"
+build "aarch64-unknown-linux-gnu" "linux-aarch64" "" "aarch64-linux-gnu-gcc"
 build "x86_64-pc-windows-gnu" "windows-x86_64" ".exe" "x86_64-w64-mingw32-gcc"
+build "aarch64-pc-windows-gnullvm" "windows-aarch64" ".exe" "aarch64-w64-mingw32-gcc"
 
 # Clean up any unnested root bin binaries
 rm -f "$BIN/ntsx" "$BIN/ntsx.exe"

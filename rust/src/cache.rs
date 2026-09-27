@@ -80,7 +80,8 @@ fn dir_size(path: &Path) -> u64 {
     total
 }
 
-fn copy_dir_all(src: &Path, dst: &Path) -> Result<(), Box<dyn std::error::Error>> {
+#[allow(dead_code)]
+pub fn copy_dir_all(src: &Path, dst: &Path) -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(dst)?;
     for entry in fs::read_dir(src)? {
         let entry = entry?;

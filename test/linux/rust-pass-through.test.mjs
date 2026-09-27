@@ -4,7 +4,7 @@ import { existsSync, writeFileSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { sandbox, runCliWithRetry } from '../helpers.mjs'
 
-test('rust cli pass-through: -h --name=Kreisler --is-admin forwarded after --', () => {
+test('rust cli linux pass-through: -h --name=Kreisler --is-admin forwarded after --', () => {
   const dir = sandbox()
   const out = runCliWithRetry([
     'run', '-e',
@@ -14,7 +14,7 @@ test('rust cli pass-through: -h --name=Kreisler --is-admin forwarded after --', 
   assert.equal(out.trim(), "[ '-h', '--name=Kreisler', '--is-admin' ]")
 })
 
-test('rust cli pass-through: --with chalk -e process.argv.slice(1)', () => {
+test('rust cli linux pass-through: --with chalk -e process.argv.slice(1)', () => {
   const dir = sandbox()
   const out = runCliWithRetry([
     'run', '--with', 'chalk', '-q', '-e',
