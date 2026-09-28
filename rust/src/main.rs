@@ -58,24 +58,33 @@ async fn main() -> ExitCode {
             }
         }
         CliCommand::Tool(args) => {
-            let (tool_name, tool_args) = match args.command {
-                Some(ToolCommand::Run { tool, args }) => (tool, args),
+            let (requested_node, tool_name, tool_args) = match args.command {
+                Some(ToolCommand::Run { node, tool, args }) => (node, tool, args),
                 None => {
                     if args.tool_args.is_empty() {
                         eprintln!("ntsx: tool name required");
                         return ExitCode::from(1);
                     }
-                    (args.tool_args[0].clone(), args.tool_args[1..].to_vec())
+                    (args.node, args.tool_args[0].clone(), args.tool_args[1..].to_vec())
                 }
             };
 
-            let node_bin = match node_version::resolve_node_binary(None, true).await {
+            let node_bin = match node_version::resolve_node_binary(requested_node.as_deref(), true).await {
                 Ok(bin) => bin,
                 Err(err) => {
                     eprintln!("ntsx: {err}");
                     return ExitCode::from(1);
                 }
             };
+
+            if requested_node.is_some() {
+                if let Some(parent) = node_bin.parent() {
+                    if let Ok(path_env) = std::env::var("PATH") {
+                        let path_sep = if cfg!(windows) { ";" } else { ":" };
+                        std::env::set_var("PATH", format!("{}{path_sep}{path_env}", parent.display()));
+                    }
+                }
+            }
 
             let npx_cmd = if cfg!(windows) {
                 if let Some(parent) = node_bin.parent() {

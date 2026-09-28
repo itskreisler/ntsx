@@ -53,6 +53,10 @@ pub struct ToolArgs {
     #[command(subcommand)]
     pub command: Option<ToolCommand>,
 
+    /// Pin Node version.
+    #[arg(long)]
+    pub node: Option<String>,
+
     /// Default tool name
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     pub tool_args: Vec<String>,
@@ -62,6 +66,9 @@ pub struct ToolArgs {
 pub enum ToolCommand {
     /// Run a developer tool ephemerally
     Run {
+        /// Pin Node version.
+        #[arg(long)]
+        node: Option<String>,
         /// Tool package name
         tool: String,
         /// Arguments passed to tool

@@ -97,6 +97,13 @@ test('rust cli linux tool: subcomando ntsx tool run', () => {
   assert.match(r.stdout, /Version/i)
 })
 
+test('rust cli linux tool: ntsx tool con --node', () => {
+  const dir = sandbox()
+  const r = spawnSync(RUST_BIN, ['tool', '--node', '24.21.0', 'typescript', '--version'], { cwd: dir, encoding: 'utf8' })
+  assert.equal(r.status, 0)
+  assert.match(r.stdout, /Version/i)
+})
+
 // ============================================================
 // 3. Script Metadata JSDoc (@ntsx)
 // ============================================================
@@ -171,6 +178,13 @@ test('rust cli linux metadata: --node 26.10.0 valida process.version', () => {
 // ============================================================
 // 4. Manejo de errores y casos edge
 // ============================================================
+
+test('rust cli linux error: node no instalado en PATH sugiere --node', () => {
+  const dir = sandbox()
+  const r = spawnSync(RUST_BIN, ['run', '-e', 'console.log("x")'], { cwd: dir, encoding: 'utf8', env: { ...process.env, PATH: '' } })
+  assert.notEqual(r.status, 0)
+  assert.match(r.stderr, /Recommendation: run with '--node 22' or '--node 24'/i)
+})
 
 test('rust cli linux error: script que no existe', () => {
   const dir = sandbox()

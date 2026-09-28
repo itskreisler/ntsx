@@ -3,6 +3,7 @@ import path from 'node:path'
 import { spawn } from 'node:child_process'
 import { CACHE_ROOT } from './config.js'
 import { prepareCache, restoreNodeModules } from './cache.js'
+import { resolveNodeBinary } from './node-version.js'
 
 export const TOOLS_CACHE_ROOT = path.join(CACHE_ROOT, 'tools')
 
@@ -14,6 +15,8 @@ export interface ToolRunOptions {
   tool: string
   /** Arguments forwarded directly to the tool binary. */
   args: string[]
+  /** Pin Node version. */
+  nodeVersion?: string
   /** If true, suppresses npm install output. */
   quiet?: boolean
 }
@@ -25,7 +28,7 @@ export interface ToolRunOptions {
  * @returns Exit status code.
  */
 export async function runTool(opts: ToolRunOptions): Promise<number> {
-  const { tool, args, quiet } = opts
+  const { tool, args, nodeVersion, quiet } = opts
   const targetDir = process.cwd()
 
   // Ephemeral installation of tool package
@@ -40,7 +43,6 @@ export async function runTool(opts: ToolRunOptions): Promise<number> {
     if (at !== -1) binName = tool.slice(0, at)
   }
 
-  // Handle scoped package name binaries (e.g., @angular/cli -> ng or package name)
   if (binName.includes('/')) {
     binName = binName.split('/')[1]
   }
@@ -51,15 +53,21 @@ export async function runTool(opts: ToolRunOptions): Promise<number> {
   try {
     await fs.access(cmd)
   } catch {
-    // If exact binary name not found in .bin, fallback to npx
     cmd = 'npx'
     args.unshift(tool)
   }
 
   try {
+    const spawnEnv: NodeJS.ProcessEnv = { ...process.env }
+    if (nodeVersion) {
+      const nodeBin = await resolveNodeBinary(nodeVersion, { quiet })
+      const customNodeDir = path.dirname(nodeBin)
+      spawnEnv.PATH = `${customNodeDir}${path.delimiter}${spawnEnv.PATH ?? ''}`
+    }
+
     const spawnOpts: { stdio: 'inherit'; env: NodeJS.ProcessEnv; shell?: boolean } = {
       stdio: 'inherit',
-      env: process.env,
+      env: spawnEnv,
     }
     if (process.platform === 'win32' && /\.cmd$/i.test(cmd)) spawnOpts.shell = true
 

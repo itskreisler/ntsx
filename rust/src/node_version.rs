@@ -29,6 +29,32 @@ pub fn get_dist_arch() -> &'static str {
     }
 }
 
+fn which_node() -> Option<PathBuf> {
+    if let Ok(path_env) = std::env::var("PATH") {
+        for dir in std::env::split_paths(&path_env) {
+            #[cfg(windows)]
+            {
+                let cand_exe = dir.join("node.exe");
+                if cand_exe.is_file() {
+                    return Some(cand_exe);
+                }
+                let cand_cmd = dir.join("node.cmd");
+                if cand_cmd.is_file() {
+                    return Some(cand_cmd);
+                }
+            }
+            #[cfg(not(windows))]
+            {
+                let cand = dir.join("node");
+                if cand.is_file() {
+                    return Some(cand);
+                }
+            }
+        }
+    }
+    None
+}
+
 pub async fn get_cached_node_binary(requested: &str) -> Option<PathBuf> {
     let clean = requested
         .trim()
@@ -172,11 +198,14 @@ pub async fn resolve_node_binary(
     version: Option<&str>,
     quiet: bool,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
-    let host_node = PathBuf::from("node");
-
     let requested = match version {
         Some(v) if !v.is_empty() && v != "current" => v,
-        _ => return Ok(host_node),
+        _ => {
+            if let Some(host_node) = which_node() {
+                return Ok(host_node);
+            }
+            return Err("Node.js is not installed or not found on PATH. Recommendation: run with '--node 22' or '--node 24' to download Node.js automatically.".into());
+        }
     };
 
     if let Some(cached) = get_cached_node_binary(requested).await {

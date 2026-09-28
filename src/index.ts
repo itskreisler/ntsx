@@ -56,7 +56,6 @@ async function guard(fn: () => Promise<void>): Promise<void> {
   }
 }
 
-
 const program = new Command()
 program.enablePositionalOptions()
 
@@ -196,24 +195,26 @@ toolCmd
   .command('run')
   .description('Run a developer tool ephemerally')
   .passThroughOptions()
+  .option('--node <version>', 'pin Node version')
   .argument('<tool>', 'tool package name (e.g., prettier, rimraf)')
   .argument('[toolArgs...]', 'arguments forwarded to the tool')
-  .action(async (tool: string, toolArgs: string[]) => {
+  .action(async (tool: string, toolArgs: string[], options: { node?: string }) => {
     await guard(async () => {
-      const exitCode = await runTool({ tool, args: toolArgs, quiet: true })
+      const exitCode = await runTool({ tool, args: toolArgs, nodeVersion: options.node, quiet: true })
       if (exitCode !== 0) process.exitCode = exitCode
     })
   })
 
 // Default tool execution shortcut (ntsx tool <tool> [args...])
 toolCmd
+  .option('--node <version>', 'pin Node version')
   .argument('[tool]', 'tool package name')
   .argument('[toolArgs...]', 'arguments forwarded to the tool')
   .passThroughOptions()
-  .action(async (tool: string | undefined, toolArgs: string[]) => {
+  .action(async (tool: string | undefined, toolArgs: string[], options: { node?: string }) => {
     if (!tool) return
     await guard(async () => {
-      const exitCode = await runTool({ tool, args: toolArgs, quiet: true })
+      const exitCode = await runTool({ tool, args: toolArgs, nodeVersion: options.node, quiet: true })
       if (exitCode !== 0) process.exitCode = exitCode
     })
   })

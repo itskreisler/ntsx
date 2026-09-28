@@ -107,6 +107,13 @@ test('ntsx windows tool: subcomando ntsx tool run', () => {
     assert.match(r.stdout, /Version/i)
 })
 
+test('ntsx windows tool: ntsx tool con --node 24.21.0', () => {
+    const dir = sandbox()
+    const r = spawnCli(['tool', '--node', '24.21.0', 'typescript', '--version'], { cwd: dir })
+    assert.equal(r.status, 0)
+    assert.match(r.stdout, /Version/i)
+})
+
 // ============================================================
 // 3. Script Metadata (JSDoc @ntsx)
 // ============================================================
@@ -176,6 +183,13 @@ test('ntsx windows metadata: script sin header funciona normalmente', () => {
 // ============================================================
 // 4. Manejo de errores y casos edge
 // ============================================================
+
+test('ntsx windows error: node no instalado en PATH sugiere --node', () => {
+    const dir = sandbox()
+    const r = spawnCli(['run', '-e', 'console.log("x")'], { cwd: dir, env: { ...process.env, PATH: '' } })
+    assert.notEqual(r.status, 0)
+    assert.match(r.stderr, /Recommendation: run with '--node 22' or '--node 24'/i)
+})
 
 test('ntsx windows error: script que no existe', () => {
     const dir = sandbox()
