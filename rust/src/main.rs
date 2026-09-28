@@ -86,38 +86,116 @@ async fn main() -> ExitCode {
                 }
             }
 
-            let npx_cmd = if cfg!(windows) {
-                if let Some(parent) = node_bin.parent() {
-                    let npx_exe = parent.join("npx.exe");
-                    if npx_exe.exists() {
-                        npx_exe
-                    } else {
-                        let npx_cmd_path = parent.join("npx.cmd");
-                        if npx_cmd_path.exists() {
-                            npx_cmd_path
-                        } else {
-                            std::path::PathBuf::from("npx.cmd")
-                        }
-                    }
-                } else {
-                    std::path::PathBuf::from("npx.cmd")
-                }
-            } else {
-                if let Some(parent) = node_bin.parent() {
-                    let npx = parent.join("npx");
-                    if npx.exists() {
-                        npx
-                    } else {
-                        std::path::PathBuf::from("npx")
-                    }
-                } else {
-                    std::path::PathBuf::from("npx")
+            let target_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+
+            let stash = match cache::prepare_cache(std::slice::from_ref(&tool_name), &target_dir, true, &[], false).await {
+                Ok(s) => s,
+                Err(err) => {
+                    eprintln!("ntsx: {err}");
+                    return ExitCode::from(1);
                 }
             };
 
-            let mut child_cmd = std::process::Command::new(npx_cmd);
-            child_cmd.arg("-y").arg(&tool_name);
-            child_cmd.args(&tool_args);
+            let _guard = run::CleanupGuard {
+                target_node_modules: target_dir.join("node_modules"),
+                stash: Some(stash),
+            };
+
+            let (pkg_name, _) = cache::parse_spec(&tool_name);
+            let installed_node_modules = target_dir.join("node_modules");
+            let pkg_json_path = installed_node_modules.join(&pkg_name).join("package.json");
+
+            let mut possible_bins = Vec::new();
+            if let Ok(raw) = std::fs::read(&pkg_json_path) {
+                if let Ok(parsed) = serde_json::from_slice::<serde_json::Value>(&raw) {
+                    if let Some(bin_val) = parsed.get("bin") {
+                        if bin_val.is_string() {
+                            let unscoped = if pkg_name.starts_with('@') {
+                                pkg_name.split('/').nth(1).unwrap_or(&pkg_name).to_string()
+                            } else {
+                                pkg_name.clone()
+                            };
+                            possible_bins.push(unscoped);
+                        } else if let Some(obj) = bin_val.as_object() {
+                            for k in obj.keys() {
+                                possible_bins.push(k.clone());
+                            }
+                        }
+                    }
+                }
+            }
+
+            let default_bin = if pkg_name.starts_with('@') {
+                pkg_name.split('/').nth(1).unwrap_or(&pkg_name).to_string()
+            } else {
+                pkg_name.clone()
+            };
+            if !possible_bins.contains(&default_bin) {
+                possible_bins.insert(0, default_bin);
+            }
+
+            let bin_dir = installed_node_modules.join(".bin");
+            let mut found_bin: Option<std::path::PathBuf> = None;
+
+            for b in &possible_bins {
+                let cand = bin_dir.join(b);
+                if cand.is_file() {
+                    found_bin = Some(cand);
+                    break;
+                }
+                if cfg!(windows) {
+                    let cand_cmd = bin_dir.join(format!("{b}.cmd"));
+                    if cand_cmd.is_file() {
+                        found_bin = Some(cand_cmd);
+                        break;
+                    }
+                    let cand_exe = bin_dir.join(format!("{b}.exe"));
+                    if cand_exe.is_file() {
+                        found_bin = Some(cand_exe);
+                        break;
+                    }
+                }
+            }
+
+            let mut child_cmd = if let Some(ref bin_path) = found_bin {
+                let mut cmd = std::process::Command::new(bin_path);
+                cmd.args(&tool_args);
+                cmd
+            } else {
+                let npx_cmd = if cfg!(windows) {
+                    if let Some(parent) = node_bin.parent() {
+                        let npx_exe = parent.join("npx.exe");
+                        if npx_exe.exists() {
+                            npx_exe
+                        } else {
+                            let npx_cmd_path = parent.join("npx.cmd");
+                            if npx_cmd_path.exists() {
+                                npx_cmd_path
+                            } else {
+                                std::path::PathBuf::from("npx.cmd")
+                            }
+                        }
+                    } else {
+                        std::path::PathBuf::from("npx.cmd")
+                    }
+                } else {
+                    if let Some(parent) = node_bin.parent() {
+                        let npx = parent.join("npx");
+                        if npx.exists() {
+                            npx
+                        } else {
+                            std::path::PathBuf::from("npx")
+                        }
+                    } else {
+                        std::path::PathBuf::from("npx")
+                    }
+                };
+                let mut cmd = std::process::Command::new(npx_cmd);
+                cmd.arg("-y").arg(&tool_name);
+                cmd.args(&tool_args);
+                cmd
+            };
+
             child_cmd.stdout(std::process::Stdio::inherit());
             child_cmd.stderr(std::process::Stdio::inherit());
             child_cmd.stdin(std::process::Stdio::inherit());

@@ -11,7 +11,7 @@ export const TOOLS_CACHE_ROOT = path.join(CACHE_ROOT, 'tools')
  * Options for running a tool ephemerally.
  */
 export interface ToolRunOptions {
-  /** Name of the tool or package spec (e.g. "prettier", "rimraf@^5"). */
+  /** Name of the tool or package spec (e.g. "prettier", "rimraf@^5", "opencode-ai"). */
   tool: string
   /** Arguments forwarded directly to the tool binary. */
   args: string[]
@@ -34,26 +34,66 @@ export async function runTool(opts: ToolRunOptions): Promise<number> {
   // Ephemeral installation of tool package
   const prepped = await prepareCache([tool], targetDir, { quiet })
 
-  let binName = tool
+  let pkgName = tool
   if (tool.startsWith('@')) {
     const at = tool.indexOf('@', 1)
-    if (at !== -1) binName = tool.slice(0, at)
+    if (at !== -1) pkgName = tool.slice(0, at)
   } else {
     const at = tool.indexOf('@')
-    if (at !== -1) binName = tool.slice(0, at)
+    if (at !== -1) pkgName = tool.slice(0, at)
   }
 
-  if (binName.includes('/')) {
-    binName = binName.split('/')[1]
-  }
+  const possibleBinNames: string[] = []
 
-  const nodeModulesBin = path.join(prepped.nodeModulesPath, '.bin', binName)
-
-  let cmd = nodeModulesBin
+  // Read installed package.json to resolve actual binary executables
+  const pkgJsonPath = path.join(prepped.nodeModulesPath, pkgName, 'package.json')
   try {
-    await fs.access(cmd)
+    const rawPkg = await fs.readFile(pkgJsonPath, 'utf8')
+    const parsedPkg = JSON.parse(rawPkg)
+    if (parsedPkg.bin) {
+      if (typeof parsedPkg.bin === 'string') {
+        const defaultBin = pkgName.includes('/') ? pkgName.split('/')[1] : pkgName
+        possibleBinNames.push(defaultBin)
+      } else if (typeof parsedPkg.bin === 'object') {
+        possibleBinNames.push(...Object.keys(parsedPkg.bin))
+      }
+    }
   } catch {
-    cmd = 'npx'
+    // Ignore error
+  }
+
+  const defaultBin = pkgName.includes('/') ? pkgName.split('/')[1] : pkgName
+  if (!possibleBinNames.includes(defaultBin)) {
+    possibleBinNames.unshift(defaultBin)
+  }
+
+  let foundBinPath: string | null = null
+  for (const bName of possibleBinNames) {
+    const candidate = path.join(prepped.nodeModulesPath, '.bin', bName)
+    try {
+      await fs.access(candidate)
+      foundBinPath = candidate
+      break
+    } catch {
+      if (process.platform === 'win32') {
+        try {
+          const candCmd = `${candidate}.cmd`
+          await fs.access(candCmd)
+          foundBinPath = candCmd
+          break
+        } catch {}
+        try {
+          const candExe = `${candidate}.exe`
+          await fs.access(candExe)
+          foundBinPath = candExe
+          break
+        } catch {}
+      }
+    }
+  }
+
+  const cmd = foundBinPath ?? 'npx'
+  if (!foundBinPath) {
     args.unshift(tool)
   }
 

@@ -114,6 +114,13 @@ test('ntsx windows tool: ntsx tool con --node 24.21.0', () => {
     assert.match(r.stdout, /Version/i)
 })
 
+test('ntsx windows tool: ejecuta paquete cowsay y pasa argumentos', () => {
+    const dir = sandbox()
+    const r = spawnCli(['tool', 'cowsay', 'hello-win-ntsx'], { cwd: dir })
+    assert.equal(r.status, 0)
+    assert.match(r.stdout, /hello-win-ntsx/)
+})
+
 // ============================================================
 // 3. Script Metadata (JSDoc @ntsx)
 // ============================================================

@@ -104,6 +104,13 @@ test('rust cli linux tool: ntsx tool con --node', () => {
   assert.match(r.stdout, /Version/i)
 })
 
+test('rust cli linux tool: ejecuta paquete cowsay y pasa argumentos', () => {
+  const dir = sandbox()
+  const r = spawnSync(RUST_BIN, ['tool', 'cowsay', 'hello-ntsx'], { cwd: dir, encoding: 'utf8' })
+  assert.equal(r.status, 0)
+  assert.match(r.stdout, /hello-ntsx/)
+})
+
 // ============================================================
 // 3. Script Metadata JSDoc (@ntsx)
 // ============================================================
