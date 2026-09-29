@@ -13,19 +13,19 @@ test('rust cli linux: release binary exists and reports version 0.1.8', () => {
   assert.equal(existsSync(RUST_BIN), true, 'rust/bin/linux-x86_64/ntsx release binary must exist')
   const r = spawnSync(RUST_BIN, ['--version'], { encoding: 'utf8' })
   assert.equal(r.status, 0)
-  assert.match(r.stdout.trim(), /0\.1\.8/)
+  assert.equal(r.stdout.trim(), 'ntsx 0.1.8')
 })
 
 test('rust cli linux: help command shows uv-style description', () => {
   const r = spawnSync(RUST_BIN, ['--help'], { encoding: 'utf8' })
   assert.equal(r.status, 0)
-  assert.match(r.stdout, /Run Node\/TS scripts with ephemeral dependencies/)
+  assert.equal(r.stdout.includes('Run Node/TS scripts with ephemeral dependencies'), true)
 })
 
 test('rust cli linux: cache dir command', () => {
   const r = spawnSync(RUST_BIN, ['cache', 'dir'], { encoding: 'utf8' })
   assert.equal(r.status, 0)
-  assert.match(r.stdout.trim(), /\.cache\/ntsx/)
+  assert.equal(r.stdout.trim().endsWith('.cache/ntsx'), true)
 })
 
 // ============================================================
@@ -43,7 +43,8 @@ test('rust cli linux lock: script sin dependencias', () => {
   const lockJson = JSON.parse(readFileSync(lockPath, 'utf8'))
   assert.equal(lockJson.version, 1)
   assert.equal(lockJson.script, 'test-simple.js')
-  assert.ok(lockJson.runtime)
+  assert.equal(lockJson.runtime.name, 'node')
+  assert.ok(lockJson.runtime.version)
 })
 
 test('rust cli linux lock: script con dependencias (--with)', () => {
@@ -57,7 +58,7 @@ test('rust cli linux lock: script con dependencias (--with)', () => {
   const lockJson = JSON.parse(readFileSync(lockPath, 'utf8'))
   assert.ok(lockJson.dependencies.chalk)
   assert.ok(lockJson.dependencies.chalk.version)
-  assert.match(lockJson.dependencies.chalk.integrity, /^sha256-/)
+  assert.equal(lockJson.dependencies.chalk.integrity.startsWith('sha256-'), true)
 })
 
 test('rust cli linux lock: ntsx run usa el lockfile si existe', () => {
@@ -80,35 +81,35 @@ test('rust cli linux lock: ntsx run usa el lockfile si existe', () => {
 test('rust cli linux tool: ayuda del subcomando', () => {
   const r = spawnSync(RUST_BIN, ['tool', '--help'], { encoding: 'utf8' })
   assert.equal(r.status, 0)
-  assert.match(r.stdout, /tool/i)
+  assert.equal(r.stdout.includes('Run ephemeral developer tools'), true)
 })
 
 test('rust cli linux tool: ejecuta typescript con argumentos', () => {
   const dir = sandbox()
   const r = spawnSync(RUST_BIN, ['tool', 'typescript', '--version'], { cwd: dir, encoding: 'utf8' })
   assert.equal(r.status, 0)
-  assert.match(r.stdout, /Version/i)
+  assert.equal(r.stdout.toLowerCase().includes('version'), true)
 })
 
 test('rust cli linux tool: subcomando ntsx tool run', () => {
   const dir = sandbox()
   const r = spawnSync(RUST_BIN, ['tool', 'run', 'typescript', '--version'], { cwd: dir, encoding: 'utf8' })
   assert.equal(r.status, 0)
-  assert.match(r.stdout, /Version/i)
+  assert.equal(r.stdout.toLowerCase().includes('version'), true)
 })
 
 test('rust cli linux tool: ntsx tool con --node', () => {
   const dir = sandbox()
   const r = spawnSync(RUST_BIN, ['tool', '--node', '24.21.0', 'typescript', '--version'], { cwd: dir, encoding: 'utf8' })
   assert.equal(r.status, 0)
-  assert.match(r.stdout, /Version/i)
+  assert.equal(r.stdout.toLowerCase().includes('version'), true)
 })
 
 test('rust cli linux tool: ejecuta paquete cowsay y pasa argumentos', () => {
   const dir = sandbox()
   const r = spawnSync(RUST_BIN, ['tool', 'cowsay', 'hello-ntsx'], { cwd: dir, encoding: 'utf8' })
   assert.equal(r.status, 0)
-  assert.match(r.stdout, /hello-ntsx/)
+  assert.equal(r.stdout.includes('hello-ntsx'), true)
 })
 
 // ============================================================
@@ -128,7 +129,7 @@ import chalk from 'chalk';
 console.log(process.version, typeof chalk.green);
 `)
   const out = runCliWithRetry(['run', '-q', scriptPath], { cwd: dir })
-  assert.match(out.trim(), /v24\.21\.0 function/)
+  assert.equal(out.trim(), 'v24.21.0 function')
 })
 
 test('rust cli linux metadata JSDoc: @ntsx con @node {26.10.0}', () => {
@@ -190,14 +191,14 @@ test('rust cli linux error: node no instalado en PATH sugiere --node', () => {
   const dir = sandbox()
   const r = spawnSync(RUST_BIN, ['run', '-e', 'console.log("x")'], { cwd: dir, encoding: 'utf8', env: { ...process.env, PATH: '' } })
   assert.notEqual(r.status, 0)
-  assert.match(r.stderr, /Recommendation: run with '--node 22' or '--node 24'/i)
+  assert.equal(r.stderr.includes("Recommendation: run with '--node 22' or '--node 24'"), true)
 })
 
 test('rust cli linux error: script que no existe', () => {
   const dir = sandbox()
   const { code, stderr } = runCliErr(['run', 'non-existent-file.ts'], { cwd: dir })
   assert.notEqual(code, 0)
-  assert.match(stderr, /not found/i)
+  assert.equal(stderr.toLowerCase().includes('not found'), true)
 })
 
 test('rust cli linux error: sintaxis inválida', () => {
@@ -212,5 +213,5 @@ test('rust cli linux error: dependencia inexistente', () => {
   const dir = sandbox()
   const { code, stderr } = runCliErr(['run', '--with', 'pkg-does-not-exist-123456789', '-e', 'console.log("x")'], { cwd: dir })
   assert.notEqual(code, 0)
-  assert.match(stderr, /Invalid package spec|ERR!|failed/i)
+  assert.equal(stderr.includes('Invalid package spec') || stderr.includes('ERR!') || stderr.includes('failed'), true)
 })

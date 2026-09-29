@@ -59,7 +59,8 @@ test('ntsx windows lock: genera lockfile para script sin dependencias', () => {
     const lockJson = JSON.parse(readFileSync(lockPath, 'utf8'))
     assert.equal(lockJson.version, 1)
     assert.equal(lockJson.script, 'test-simple.js')
-    assert.ok(lockJson.runtime)
+    assert.equal(lockJson.runtime.name, 'node')
+    assert.ok(lockJson.runtime.version)
 })
 
 test('ntsx windows lock: genera lockfile con dependencias (--with)', () => {
@@ -72,7 +73,7 @@ test('ntsx windows lock: genera lockfile con dependencias (--with)', () => {
     const lockJson = JSON.parse(readFileSync(lockPath, 'utf8'))
     assert.ok(lockJson.dependencies.chalk)
     assert.ok(lockJson.dependencies.chalk.version)
-    assert.match(lockJson.dependencies.chalk.integrity, /^sha256-/)
+    assert.equal(lockJson.dependencies.chalk.integrity.startsWith('sha256-'), true)
 })
 
 test('ntsx windows lock: ntsx run usa el lockfile si existe', () => {
@@ -90,35 +91,35 @@ test('ntsx windows lock: ntsx run usa el lockfile si existe', () => {
 test('ntsx windows tool: ayuda del subcomando', () => {
     const r = spawnCli(['tool', '--help'])
     assert.equal(r.status, 0)
-    assert.match(r.stdout, /tool/i)
+    assert.equal(r.stdout.includes('Run ephemeral developer tools'), true)
 })
 
 test('ntsx windows tool: ejecuta typescript con argumentos', () => {
     const dir = sandbox()
     const r = spawnCli(['tool', 'typescript', '--version'], { cwd: dir })
     assert.equal(r.status, 0)
-    assert.match(r.stdout, /Version/i)
+    assert.equal(r.stdout.toLowerCase().includes('version'), true)
 })
 
 test('ntsx windows tool: subcomando ntsx tool run', () => {
     const dir = sandbox()
     const r = spawnCli(['tool', 'run', 'typescript', '--version'], { cwd: dir })
     assert.equal(r.status, 0)
-    assert.match(r.stdout, /Version/i)
+    assert.equal(r.stdout.toLowerCase().includes('version'), true)
 })
 
 test('ntsx windows tool: ntsx tool con --node 24.21.0', () => {
     const dir = sandbox()
     const r = spawnCli(['tool', '--node', '24.21.0', 'typescript', '--version'], { cwd: dir })
     assert.equal(r.status, 0)
-    assert.match(r.stdout, /Version/i)
+    assert.equal(r.stdout.toLowerCase().includes('version'), true)
 })
 
 test('ntsx windows tool: ejecuta paquete cowsay y pasa argumentos', () => {
     const dir = sandbox()
     const r = spawnCli(['tool', 'cowsay', 'hello-win-ntsx'], { cwd: dir })
     assert.equal(r.status, 0)
-    assert.match(r.stdout, /hello-win-ntsx/)
+    assert.equal(r.stdout.includes('hello-win-ntsx'), true)
 })
 
 // ============================================================
@@ -137,7 +138,7 @@ import chalk from 'chalk';
 console.log(process.version, typeof chalk.green);
 `)
     const out = runCliWithRetry(['run', '-q', scriptPath], { cwd: dir })
-    assert.match(out.trim(), /v24\.21\.0 function/)
+    assert.equal(out.trim(), 'v24.21.0 function')
 })
 
 test('ntsx windows metadata JSDoc: @node {26.10.0}', () => {
@@ -195,14 +196,14 @@ test('ntsx windows error: node no instalado en PATH sugiere --node', () => {
     const dir = sandbox()
     const r = spawnCli(['run', '-e', 'console.log("x")'], { cwd: dir, env: { ...process.env, PATH: '' } })
     assert.notEqual(r.status, 0)
-    assert.match(r.stderr, /Recommendation: run with '--node 22' or '--node 24'/i)
+    assert.equal(r.stderr.includes("Recommendation: run with '--node 22' or '--node 24'"), true)
 })
 
 test('ntsx windows error: script que no existe', () => {
     const dir = sandbox()
     const { code, stderr } = runCliErr(['run', 'non-existent-file.ts'], { cwd: dir })
     assert.notEqual(code, 0)
-    assert.match(stderr, /not found/i)
+    assert.equal(stderr.toLowerCase().includes('not found'), true)
 })
 
 test('ntsx windows error: sintaxis inválida', () => {
@@ -216,7 +217,7 @@ test('ntsx windows error: dependencia inexistente', () => {
     const dir = sandbox()
     const { code, stderr } = runCliErr(['run', '--with', 'pkg-does-not-exist-123456789', '-e', 'console.log("x")'], { cwd: dir })
     assert.notEqual(code, 0)
-    assert.match(stderr, /Invalid package spec|ERR!|failed/i)
+    assert.equal(stderr.includes('Invalid package spec') || stderr.includes('ERR!') || stderr.includes('failed'), true)
 })
 
 // ============================================================
@@ -248,7 +249,7 @@ test('ntsx windows: --debug muestra información de depuración', () => {
     const { stderr } = runCliErr([
         'run', '--debug', '-e', 'console.log("test")',
     ], { cwd: dir })
-    assert.ok(stderr.includes('[ntsx:debug]'))
+    assert.equal(stderr.includes('[ntsx:debug]'), true)
 })
 
 test('ntsx windows: cache dir muestra la ruta del caché', () => {
@@ -256,5 +257,5 @@ test('ntsx windows: cache dir muestra la ruta del caché', () => {
     const out = runCliWithRetry([
         'cache', 'dir',
     ], { cwd: dir })
-    assert.ok(out.includes('.cache') || out.includes('ntsx'))
+    assert.equal(out.includes('.cache') || out.includes('ntsx'), true)
 })
