@@ -1,11 +1,5 @@
 /**
- * Helpers específicos para tests del binario Rust en Windows (entorno nvm)
- * 
- * Características del entorno:
- * - Node.js v26.10.0 en nvm (C:\Users\Kreisler\AppData\Local\Author Software\nvm\.nodejs)
- * - npx.cmd (no npx.exe) en el directorio de instalación
- * - PowerShell 5.1 (trata stderr como error)
- * - Rutas con espacios en nvm
+ * Helpers específicos para tests del binario Rust en entorno Windows (ntsx.exe, cmd.exe, PowerShell, %USERPROFILE%)
  */
 import { after } from 'node:test'
 import { spawn, spawnSync } from 'node:child_process'
@@ -20,7 +14,7 @@ const ext = '.exe'
 // Rutas
 export const RUST_BIN = path.resolve(`rust/bin/${platformDir}/ntsx${ext}`)
 
-// HOME aislado para tests (compartido para reusar caché)
+// HOME aislado para tests (%USERPROFILE% en Windows)
 const sharedHome = path.join(os.tmpdir(), 'ntsx-windows-test-home')
 if (!existsSync(sharedHome)) {
     mkdirSync(sharedHome, { recursive: true })
@@ -47,15 +41,18 @@ after(() => {
 })
 
 /**
- * Ejecuta el CLI de ntsx con los argumentos dados
+ * Ejecuta el CLI de ntsx con los argumentos dados (%USERPROFILE% y HOME simulado)
  */
 export function spawnCli(args, opts = {}) {
     try {
-        return spawnSync(RUST_BIN, args, {
+        const isWine = process.platform !== 'win32'
+        const binToRun = isWine ? 'wine' : RUST_BIN
+        const cmdArgs = isWine ? [RUST_BIN, ...args] : args
+        return spawnSync(binToRun, cmdArgs, {
             cwd: opts.cwd,
             encoding: 'utf8',
             input: opts.input,
-            env: { ...process.env, HOME: testHome },
+            env: { ...process.env, HOME: testHome, USERPROFILE: testHome, WINEDEBUG: '-all' },
             timeout: opts.timeout || 60000,
         })
     } catch (err) {
@@ -67,9 +64,12 @@ export function spawnCli(args, opts = {}) {
  * Ejecuta el CLI de ntsx de forma asíncrona
  */
 export function spawnCliAsync(args, opts = {}) {
-    return spawn(RUST_BIN, args, {
+    const isWine = process.platform !== 'win32'
+    const binToRun = isWine ? 'wine' : RUST_BIN
+    const cmdArgs = isWine ? [RUST_BIN, ...args] : args
+    return spawn(binToRun, cmdArgs, {
         cwd: opts.cwd,
-        env: { ...process.env, HOME: testHome },
+        env: { ...process.env, HOME: testHome, USERPROFILE: testHome, WINEDEBUG: '-all' },
     })
 }
 
