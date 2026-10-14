@@ -35,9 +35,19 @@ export function lockfilePathFor(scriptPath: string): string {
  * @param scriptPath - Path to the target script file.
  * @param withList - List of requested dependency package specifications.
  */
-export async function generateLockfile(scriptPath: string, withList: string[]): Promise<string> {
+import { resolveNodeBinary } from './node-version.js'
+
+export async function generateLockfile(
+  scriptPath: string,
+  withList: string[],
+  opts?: { nodeVersion?: string }
+): Promise<string> {
   const absScript = path.resolve(scriptPath)
   const targetDir = path.dirname(absScript)
+
+  const nodeBin = await resolveNodeBinary(opts?.nodeVersion, { quiet: true })
+  const customNodeDir = path.dirname(nodeBin)
+  process.env.PATH = `${customNodeDir}${path.delimiter}${process.env.PATH ?? ''}`
 
   const prepped = await prepareCache(withList, targetDir, { quiet: true })
   const lockfileData: LockfileData = {

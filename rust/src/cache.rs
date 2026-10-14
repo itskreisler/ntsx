@@ -283,7 +283,13 @@ pub async fn prepare_cache(
 
         fs::write(&pkg_json_path, serde_json::to_string_pretty(&pkg_manifest)?)?;
 
-        let mut npm_cmd = Command::new("npm");
+        let npm_bin = if let Some(path) = crate::run::which("npm") {
+            path
+        } else {
+            PathBuf::from("npm")
+        };
+
+        let mut npm_cmd = Command::new(&npm_bin);
         npm_cmd
             .arg("install")
             .arg("--no-audit")
@@ -299,7 +305,15 @@ pub async fn prepare_cache(
                 .stderr(std::process::Stdio::null());
         }
 
-        let output = npm_cmd.output()?;
+        let output = match npm_cmd.output() {
+            Ok(out) => out,
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    return Err("Node.js is not installed or not found on PATH. Recommendation: run with '--node 22' or '--node 24' to download Node.js automatically.".into());
+                }
+                return Err(format!("Failed to execute npm: {e}").into());
+            }
+        };
         if !output.status.success() {
             let stderr_str = String::from_utf8_lossy(&output.stderr);
             let detail = stderr_str
