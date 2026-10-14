@@ -27,7 +27,7 @@ test('core CLI: sin script ni eval da error', () => {
 test('core CLI: script inexistente devuelve error limpio', () => {
   const { code, stderr } = runCliErr(['run', 'no-existe.ts'])
   assert.notEqual(code, 0)
-  assert.match(stderr, /ntsx: Script not found/)
+  assert.match(stderr, /ntsx: (ERROR: )?Script not found/)
 })
 
 test('core CLI: --with con spec inválido devuelve error limpio', () => {
