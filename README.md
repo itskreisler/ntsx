@@ -2,338 +2,241 @@
 
 # ⚡ ntsx
 
+*Run Node/TS scripts with ephemeral dependencies — no `npm install`, no project pollution.*
+
 [![CI](https://github.com/itskreisler/ntsx/actions/workflows/ci.yml/badge.svg)](https://github.com/itskreisler/ntsx/actions)
-[![npm](https://img.shields.io/npm/v/@kreisler/ntsx)](https://www.npmjs.com/package/@kreisler/ntsx)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@kreisler/ntsx?style=flat-square)](https://www.npmjs.com/package/@kreisler/ntsx)
+![Node version](https://img.shields.io/badge/Node.js->=22-3c873a?style=flat-square)
+[![TypeScript](https://img.shields.io/badge/TypeScript-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
-**Run any Node/TS script with ephemeral dependencies — no `npm install`, no project pollution.**
+⭐ If you like this project, star it on GitHub!
 
-```bash
-ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hello world'))"
-```
-
-**Plant, run, restore. Your `node_modules` stays exactly as it was.**
-*`uv --with`, but for Node.js.*
-
-> 🌐 [Español](/README-es.md)
-
----
-
-<p>
-  <b>npm run</b> ·
-  <b>tsx</b> ·
-  <b>npx</b> ·
-  <b>uv --with</b> ·
-  <b>Node ≥ 22</b>
-</p>
+[Overview](#overview) • [Features](#features) • [Installation](#installation) • [Quick Start](#quick-start) • [Commands & Options](#commands--options) • [Script Metadata](#script-metadata) • [How It Works](#how-it-works) • [Cache Management](#cache-management)
 
 </div>
 
 ---
 
-## What is this?
+## Overview
 
-`ntsx` runs a script (`.js`, `.ts`, `.tsx`, or inline code with `-e`) with **ephemeral
-dependencies**: it installs them on the fly into an isolated cache (`~/.cache/ntsx`), links them
-through a temporary `node_modules`, and **restores your real `node_modules` when done**.
+`ntsx` is a CLI runner for Node.js and TypeScript that brings `uv --with` capabilities to the JavaScript ecosystem. It allows you to run any script (`.js`, `.ts`, `.tsx`, `.mjs`, `.cjs`) or inline code block with **ephemeral dependencies** — installing requested packages on the fly into an isolated cache, linking them into your workspace, and restoring your real `node_modules` when execution finishes.
 
-A snippet, a scraper, a throwaway API, a QR in your terminal... **without ever touching the
-`package.json`** of your project. Like `uv --with`, but for Node.
+Whether you are running throwaway scrapers, CLI utilities, single-file microservices, or terminal tools, `ntsx` keeps your repository clean and your `package.json` untouched.
+
+> [!NOTE]
+> `ntsx` requires Node.js >= 22. It automatically uses `tsx` for TypeScript files and falls back to `npx tsx` if not installed globally.
+
+### Why `ntsx`?
+
+| Capability | `npx` | `tsx` | `ntsx` |
+|---|:---:|:---:|:---:|
+| Run TypeScript directly | ❌ | ✅ | ✅ |
+| Ad-hoc dependencies without `npm i` | ⚠️ (`npx -p pkg`) | ❌ | ✅ (`--with pkg`) |
+| Zero changes to `package.json` | ✅ | ❌ | ✅ |
+| Guaranteed `node_modules` integrity | ❌ | ⚠️ | ✅ (Auto-restored) |
+| Shared persistent cache across runs | ⚠️ | ❌ | ✅ (`~/.cache/ntsx`) |
+| Declarative JSDoc metadata | ❌ | ❌ | ✅ (`/** @ntsx */`) |
+| Pin Node.js version on the fly | ❌ | ❌ | ✅ (`--node 24`) |
+
+---
+
+## Features
+
+- 📦 **Ephemeral Dependencies** – Supply dependencies on demand via `--with <pkg>` without adding them to `package.json`.
+- ⚡ **Zero Project Pollution** – Stashes existing `node_modules` during execution and restores them automatically upon exit or signal interruptions (`SIGINT`, `SIGTERM`).
+- 📁 **Isolated Caching** – Caches downloaded dependencies in `~/.cache/ntsx/` by workspace and dependency hash for instant subsequent runs.
+- 📝 **Inline Script Metadata** – Declare required packages, Node.js versions, and runtimes inside JSDoc comment blocks directly in your scripts.
+- 📌 **Node.js Version Pinning** – Automatically download and execute scripts under specific Node.js release versions with `--node <version>`.
+- 🛠️ **Ephemeral Tool Execution** – Run CLI utilities (e.g. `prettier`, `rimraf`) on-demand with `ntsx tool <tool>`.
+- 🔒 **Lockfile Support** – Lock exact script dependencies into a `<script>.lock` file for reproducible execution across environments.
+
+---
+
+## Installation
+
+Install globally via `npm`:
 
 ```bash
-# a script that needs deps you DON'T have installed
-ntsx run --with axios --with jsdom examples/scrape.ts
-
-# inline code, without creating a single file
-ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://npmjs.com/package/@kreisler/ntsx', {type:'terminal', small:true}).then(console.log)"
-
-# pinned versions
-ntsx run --with chalk@^4 script.js arg1
-
-# pin Node version
-ntsx run --node 24 script.ts
-
-# generate lockfile
-ntsx lock script.ts
-
-# run ephemeral tool
-ntsx tool prettier --write script.ts
-
-# pass args to the script
-ntsx run --with axios diario.ts --fecha hoy
+npm install -g @kreisler/ntsx
 ```
 
-## Why ntsx over <del>npx/tsx/npm</del>?
-
-| What you want to do | npx | tsx | ntsx |
-|---|---|---|---|
-| Run TS without installing anything | ❌ no transpile | ✅ | ✅ |
-| Use a dep you don't have installed | ⚠️ `npx -p chalk` (ugly) | ❌ needs `npm i` | ✅ `--with chalk` |
-| Repeatable, pinned versions | ⚠️ | ❌ | ✅ `--with @scope/pkg@^2` |
-| Never touch your `package.json` | ✅ | ❌ | ✅ |
-| Never break your `node_modules` | ❌ often leaves a mess | ⚠️ | ✅ (restored) |
-| Cache reused across runs | ⚠️ | ❌ | ✅ `~/.cache/ntsx` |
-
-**Flag order**: everything **before** the script is for the runner, everything **after** goes to the
-script (same as tsx):
+Or execute on-demand without installing using `npx`:
 
 ```bash
-ntsx run --tsx-args "--tsconfig=tsconfig.custom.json" src/main.ts --verbose
-#                       ↑ runner flags                    ↑ script flags
+npx @kreisler/ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hello world'))"
 ```
 
-**Eval args with `-e`**: inline code uses the classic `node -e` / `tsx -e` convention — script
-arguments go **after** a `--` separator (flags like `-h` or `--name=x` are otherwise claimed by the
-CLI or by node itself):
+---
+
+## Quick Start
+
+### 1. Run a script with ephemeral dependencies
+
+Run a TypeScript script requiring packages you haven't installed in your project:
 
 ```bash
-ntsx run --with argv2object -e "import a from 'argv2object'; console.log(a())" -- -h --name=Kreisler --is-admin
-#                                                                          ↑ script args
-```
-
-## Real examples (tested ✅)
-
-```bash
-# 🕷️ Scraper with axios + jsdom
 ntsx run --with axios --with jsdom examples/scrape.ts https://example.com
-# title:  Example Domain
-# h1:     Example Domain
-# links:  1
-
-# 📟 Scanable QR straight in your terminal
-ntsx run --with qrcode examples/qr.ts "https://npmjs.com/package/@kreisler/ntsx"
-
-# 🚀 Express API
-ntsx run --with express examples/express-api.ts
-
-# ⚡ Hono API (+ native node server)
-ntsx run --with @hono/node-server --with hono examples/hono-api.ts
-
-# 🛠️ Complex stacks (Express + Axios + CORS + Multer + Zod)
-ntsx run --with express --with axios --with cors --with multer --with zod examples/21-express-stack.ts
-
-# 🔐 Hono + JOSE JWT authentication
-ntsx run --with hono --with @hono/node-server --with jose examples/22-hono-jwt.ts
-
-# 🔑 TOTP + QR Code generator (Axios + OTPAuth + QRCode)
-ntsx run --with axios --with otpauth --with qrcode examples/23-otpauth-qr.ts
-
-# 🎯 Script argument pass-through
-ntsx run --with argv2object examples/24-argv.ts --name=Kreisler archivo.txt --debug
-
-# 🎯 Inline eval + script args (use -- to separate)
-ntsx run --with argv2object -e "import a from 'argv2object'; console.log(a(true))" -- -h --help --name=Kreisler --is-admin
 ```
 
-### Long-running servers: `ntsx` + pm2
+### 2. Execute inline code with `-e`
 
-`ntsx` runs the runner in an async `spawn` and **restores `node_modules` even when killed** by
-`SIGINT`/`SIGTERM` (Ctrl+C or `pm2 stop`). So your server lives 24/7 and your project stays clean:
+Evaluate TypeScript or JavaScript directly in your terminal:
 
 ```bash
-pm2 start node --name api -- dist/ntsx.js run --with express examples/express-api.ts
-pm2 list
-curl http://localhost:3000/
-pm2 stop api       # → the original node_modules comes back
+ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://npmjs.com', { type: 'terminal', small: true }).then(console.log)"
 ```
 
-## How it works
+> [!TIP]
+> When passing command-line arguments to inline code evaluated with `-e`, use the `--` separator so flags are forwarded to your script rather than `ntsx`:
+> ```bash
+> ntsx run --with argv2object -e "import a from 'argv2object'; console.log(a(true))" -- --env production --debug
+> ```
 
-```
-ntsx run --with chalk -e "..."
-        │
-        ▼
-┌─ 1. hash the workspace + deps ────────────────┐
-│   ~/.cache/ntsx/<workspaceHash>/<depsHash>/  │
-├─ 2. already installed? ──► yes → skip npm i ─┤
-│   no → package.json + npm install (isolated)  │
-├─ 3. stash YOUR node_modules (temporary `.bak`)┤
-│   and symlink the ephemeral deps in place     │
-├─ 4. run: .ts→tsx · .js→node · eval→tsx ──────┤
-│   (or `--eval-runtime node` for plain node)   │
-└─ 5. ALWAYS restore YOUR node_modules! ────────┘
-```
+### 3. Pin Node.js version
 
-**Guaranteed integrity**: your real `node_modules` is stashed as `.ntsx-<ts>.bak`, the cache is
-symlinked in, and when the run ends (signals included) it is restored. It is never destroyed.
-**Orphaned symlinks from a crash self-heal** on the next run.
-
-> From the second run on it's **instant** (the cache already has the deps).
-
-## Cache management
+Execute a script against a specific Node.js release (downloaded into `~/.cache/ntsx/node/`):
 
 ```bash
-ntsx cache stats            # workspaces + size
-ntsx cache dir              # print absolute cache path
-ntsx cache clean            # asks for confirmation
-ntsx cache clean --force    # nukes it mercilessly
-ntsx cache prune            # clean up orphaned cache items
+ntsx run --node 24.1.0 -e "console.log(process.version)"
 ```
 
-```
-~/.cache/ntsx/                # on Windows: %USERPROFILE%\.cache\ntsx
-  <workspaceHash>/            # isolated per project (never mixes projects)
-    <depsHash>/               # isolated per dep set
-      node_modules/
+### 4. Ephemeral developer tools
+
+Run CLI utilities without adding them to your project's `devDependencies`:
+
+```bash
+ntsx tool prettier --write src/**/*.ts
 ```
 
-## Options
+### 5. Generate a lockfile
+
+Generate a lockfile (`script.ts.lock`) to pin exact versions for a standalone script:
+
+```bash
+ntsx lock --with axios@1.7.9 script.ts
+```
+
+---
+
+## Commands & Options
+
+### `ntsx run`
+
+Runs a script or inline code snippet with ephemeral dependencies.
+
+```
+ntsx run [options] [script] [scriptArgs...]
+```
 
 | Flag | Description |
-|------|-------------|
-| `-w, --with <pkg>` | Ephemeral dep (`pkg`, `pkg@version`, `@scope/pkg@version`). Repeatable |
-| `-e, --eval <code>` | Inline code (like `node -e` / `tsx -e`) |
-| `--eval-runtime <tsx\|node>` | Eval runner (default: `tsx`) |
-| `--tsx-args <flags>` | Flags for `tsx` before the script (`.ts`/eval). Repeatable |
-| `--node-args <flags>` | Flags for `node` before the script (`.js`/`.mjs`). Repeatable |
-| `--npm-args <flags>` | Flags for the cache's `npm install`. Repeatable |
-| `-q, --quiet` | Silence `npm install` output |
-| `-d, --debug` | Trace the flow: cache paths, commands, symlink, restore |
-| `--node <version>` | Pin Node version (downloads version to `~/.cache/ntsx/node/`) |
+|---|---|
+| `-w, --with <pkg>` | Add ephemeral dependency (`pkg`, `pkg@version`, `@scope/pkg@version`). Repeatable |
+| `-e, --eval <code>` | Evaluate inline code string |
+| `--eval-runtime <tsx\|node>` | Runtime used for inline eval (default: `tsx`) |
+| `--tsx-args <flags>` | Flags forwarded to `tsx` before script execution. Repeatable |
+| `--node-args <flags>` | Flags forwarded to `node` before script execution. Repeatable |
+| `--npm-args <flags>` | Flags forwarded to `npm install` when populating cache. Repeatable |
+| `-q, --quiet` | Suppress `npm install` stdout output |
+| `-d, --debug` | Display detailed execution trace and cache internal steps |
+| `--node <version>` | Pin Node.js version |
+| `-- <args...>` | Forward arguments directly to the target script |
+
+### `ntsx tool`
+
+Runs a developer tool ephemerally.
+
+```bash
+ntsx tool [--node <version>] <tool> [toolArgs...]
+```
+
+### `ntsx lock`
+
+Generates a `<script>.lock` file capturing resolved package versions.
+
+```bash
+ntsx lock [--with <pkg>] <script>
+```
+
+### `ntsx cache`
+
+Manage the local `ntsx` dependency cache.
+
+```bash
+ntsx cache stats       # Display total cache size and workspace count
+ntsx cache dir         # Output absolute path to cache directory
+ntsx cache prune       # Prune unused cache entries
+ntsx cache clean       # Interactively delete entire cache (-f to bypass prompt)
+```
+
+---
 
 ## Script Metadata
 
-Scripts can declare dependencies and Node version requirements directly in an inline header:
+Scripts can declare their dependencies, Node.js version, and runtime directly within a JSDoc block using `@ntsx`:
 
 ```typescript
-// /// ntsx
-// dependencies = [
-//   "axios",
-//   "chalk"
-// ]
-// node = "24"
-// ///
+/**
+ * @ntsx
+ * @with axios@1.7.9
+ * @with chalk@5.3.0
+ * @node {24}
+ * @runtime {tsx}
+ */
 
-import chalk from 'chalk'
 import axios from 'axios'
+import chalk from 'chalk'
+
+console.log(chalk.blue('Metadata-driven script execution'))
 ```
 
-Now run simply: `ntsx run script.ts`
-
-## When NOT to use ntsx
-
-`ntsx` shines for **à-la-carte utilities**, not for build frameworks with their own scaffolding
-(Astro, Vite, Angular, Next, Nuxt...). Use their official toolkit (`npm create <x>`) for those.
-
-> ✨ ntsx = zero friction for the **99% of scripts**: paste it in snippets, ship it in production.
-
-## Install
+Executing the script automatically installs required packages and sets up the environment:
 
 ```bash
-npm install -g @kreisler/ntsx   # 🚀 direct use: `ntsx` lands in your PATH
+ntsx run script.ts
 ```
-
-Or, from this repo:
-
-```bash
-npm install                 # dev deps
-npm run build               # tsup → dist/ntsx.js (single-file, shebang)
-npm link                    # optional: `ntsx` in your PATH
-```
-
-**Requirements:** Node ≥ 22 · `tsx` (falls back to `npx -y tsx` if missing).
-
-## Stack
-
-- TypeScript + Commander (CLI) + zod (validation)
-- `tsup` → self-contained bundle (`commander`, `zod` included in `dist`)
-- Tests with `node:test` (63/63 ✅)
 
 ---
 
-```cmd
-:: Windows CMD
-(set "USER_ID=67") && ntsx run [run flags] ./file.ts -- [flags & arguments for file.ts]
+## How It Works
+
 ```
-
-```powershell
-# Windows PowerShell
-$env:USER_ID="67"; ntsx run [run flags] ./file.ts -- [flags & arguments for file.ts]
-```
-
-### Available flags for `ntsx run`:
-
-| Flag | Description | Status | Dependencies |
-|------|-------------|--------|--------------|
-| `-w, --with <pkg>` | Ephemeral dependency (repeatable) | ✅ | Needs `-e` or `<script>` |
-| `-e, --eval <code>` | Evaluate inline code | ✅ | Independent |
-| `--eval-runtime <tsx\|node>` | Runtime for eval (default: tsx) | ✅ | Requires `-e` |
-| `--tsx-args <args>` | Flags for tsx (repeatable) | ✅ | Requires `-e` or `.ts` script |
-| `--node-args <args>` | Flags for node (repeatable) | ✅ | Requires `.js`/`.mjs` script |
-| `--npm-args <args>` | Flags for npm (repeatable) | ✅ | Requires `--with` |
-| `-q, --quiet` | Suppress npm install output | ✅ | Requires `--with` |
-| `-d, --debug` | Show internal steps | ✅ | Independent |
-| `--node <version>` | Pin Node.js version | ✅ | Independent |
-| `<script>` | Script path | ✅ | Independent |
-| `-- <args>` | Arguments for the script | ✅ | Requires `-e` or `<script>` |
-
-### Independence tests:
-
-**Independent flags** (work without other flags):
-- `-e, --eval <code>` → `ntsx run -e "console.log('hello')"` ✅
-- `-d, --debug` → `ntsx run -d -e "console.log('hello')"` ✅
-- `--node <version>` → `ntsx run --node 24.1.0 -e "console.log(process.version)"` ✅
-- `<script>` → `ntsx run script.ts` ✅
-
-**Flags that require other flags:**
-- `--eval-runtime` → Only makes sense with `-e`
-- `--tsx-args` → Only applies to `.ts` scripts or `-e` (tsx)
-- `--node-args` → Only applies to `.js`/`.mjs` scripts (node)
-- `--npm-args` → Only applies when there's `--with` (npm install)
-- `-q, --quiet` → Only affects `--with` output (npm install)
-- `-- <args>` → Only passes arguments if there's a script or eval
-
-### Combined usage examples:
-
-```bash
-# --with + -e
-ntsx run --with chalk -e "import c from 'chalk'; console.log(c.green('hello'))"
-
-# --with + <script>
 ntsx run --with chalk script.ts
-
-# --eval-runtime + -e
-ntsx run --eval-runtime node -e "console.log('hello')"
-
-# --tsx-args + -e
-ntsx run --tsx-args --version -e "console.log('hello')"
-
-# --node-args + script.js
-ntsx run --node-args --version script.js
-
-# --npm-args + --with
-ntsx run --npm-args --loglevel=error --with chalk -e "..."
-
-# --quiet + --with
-ntsx run -q --with chalk -e "..."
-
-# --node + -e
-ntsx run --node 24.1.0 -e "console.log(process.version)"
-
-# -- + script
-ntsx run script.ts -- --name test --value 123
+        │
+        ▼
+┌────────────────────────────────────────────────────────┐
+│ 1. Compute workspace hash & sorted dependency hash     │
+│    Cache path: ~/.cache/ntsx/<workspace>/<deps>/      │
+├────────────────────────────────────────────────────────┤
+│ 2. Check cache:                                        │
+│    • Hit  ──► Skip download                            │
+│    • Miss ──► Create package.json & run `npm install`  │
+├────────────────────────────────────────────────────────┤
+│ 3. Stash project `node_modules` to `.ntsx-<time>.bak`  │
+│    and symlink cached `node_modules` into project      │
+├────────────────────────────────────────────────────────┤
+│ 4. Execute target script via `tsx` or `node`           │
+├────────────────────────────────────────────────────────┤
+│ 5. Guaranteed Cleanup:                                 │
+│    Remove symlink and restore original `node_modules`  │
+└────────────────────────────────────────────────────────┘
 ```
 
-### Verified tests (25/25):
-
-- ✅ Execute JS/TS code with `-e`
-- ✅ Execute `.mjs` and `.ts` files
-- ✅ Install packages with `--with`
-- ✅ Multiple packages with `--with`
-- ✅ Scoped packages with version
-- ✅ Pass arguments after `--`
-- ✅ `--tsx-args` (version, multiple, env-file, tsconfig)
-- ✅ `--node-args` (version, env-file)
-- ✅ Load `.env` with `--env-file`
-- ✅ `--help` examples (5/5)
-- ✅ UTF-16 detection
-- ✅ `--debug`
-- ✅ `cache dir` and `cache stats`
+> [!IMPORTANT]
+> Your original `node_modules` directory is safely stashed during execution and guaranteed to be restored on completion, even if the script crashes or is terminated by `SIGINT` / `SIGTERM`. If an unexpected crash occurs, orphan symlinks auto-heal on the next run.
 
 ---
 
-<div align="center">
+## Cache Management
 
-MIT · made with ❤️ for people in a hurry
+Downloaded dependencies are stored in `~/.cache/ntsx/` (or `%USERPROFILE%\.cache\ntsx` on Windows) categorized by workspace and dependency set:
 
-</div>
+```
+~/.cache/ntsx/
+  ├── node/                  # Downloaded Node.js releases
+  └── <workspaceHash>/       # Isolated workspace folder
+      └── <depsHash>/        # Isolated dependency cache
+          └── node_modules/
+```
+
+Use `ntsx cache stats`, `ntsx cache clean`, and `ntsx cache prune` to inspect and manage disk usage.
