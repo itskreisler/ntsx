@@ -46,13 +46,22 @@ async fn main() -> ExitCode {
             }
         }
         CliCommand::Lock(args) => {
+            let meta = run::parse_script_metadata(std::path::Path::new(&args.script)).unwrap_or_default();
+            let effective_node = args.node.or(meta.node);
+            if let Ok(node_bin) = node_version::resolve_node_binary(effective_node.as_deref(), true).await {
+                if let Some(parent) = node_bin.parent() {
+                    let path_env = std::env::var("PATH").unwrap_or_default();
+                    let path_sep = if cfg!(windows) { ";" } else { ":" };
+                    std::env::set_var("PATH", format!("{}{path_sep}{path_env}", parent.display()));
+                }
+            }
             match run::generate_lockfile(&args.script, &args.with).await {
                 Ok(lock_path) => {
                     println!("Lockfile generated at {lock_path}");
                     ExitCode::SUCCESS
                 }
                 Err(err) => {
-                    eprintln!("ntsx: {err}");
+                    eprintln!("ntsx: ERROR: {err}");
                     ExitCode::from(1)
                 }
             }

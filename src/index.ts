@@ -38,7 +38,11 @@ function cleanErrorMessage(err: unknown): string {
       })
       .join('\n')
   }
-  return err instanceof Error ? err.message : String(err)
+  const msg = err instanceof Error ? err.message : String(err)
+  if (msg.includes('ERROR:')) {
+    return msg
+  }
+  return `ERROR: ${msg}`
 }
 
 /**

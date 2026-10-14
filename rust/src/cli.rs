@@ -44,6 +44,10 @@ pub struct LockArgs {
     #[arg(short = 'w', long = "with")]
     pub with: Vec<String>,
 
+    /// Pin Node version.
+    #[arg(long)]
+    pub node: Option<String>,
+
     /// Script file path.
     pub script: String,
 }

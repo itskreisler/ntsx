@@ -385,7 +385,7 @@ fn dev_log(debug: bool, msg: &str) {
     }
 }
 
-fn which(bin: &str) -> Option<PathBuf> {
+pub fn which(bin: &str) -> Option<PathBuf> {
     if let Ok(path_env) = env::var("PATH") {
         for dir in env::split_paths(&path_env) {
             #[cfg(windows)]
@@ -474,6 +474,26 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
         }
     }
 
+    let node_bin = resolve_node_binary(effective_node_version.as_deref(), opts.quiet).await?;
+    let actual_node_bin = if node_bin.as_os_str() == "node" {
+        which("node").unwrap_or(node_bin)
+    } else {
+        node_bin
+    };
+
+    let custom_node_dir = if actual_node_bin.as_os_str() != "node" {
+        actual_node_bin.parent().map(|p| p.to_path_buf())
+    } else {
+        None
+    };
+
+    if let Some(c_dir) = &custom_node_dir {
+        let path_env = env::var("PATH").unwrap_or_default();
+        let path_sep = if cfg!(windows) { ";" } else { ":" };
+        let new_path = format!("{}{path_sep}{path_env}", c_dir.display());
+        env::set_var("PATH", &new_path);
+    }
+
     let mut _guard = CleanupGuard {
         target_node_modules: target_dir.join("node_modules"),
         stash: None,
@@ -526,29 +546,6 @@ pub async fn run(opts: RunOptions) -> Result<i32, Box<dyn std::error::Error>> {
             &format!("effective_with_list: {:?}", effective_with_list),
         );
         dev_log(opts.debug, &format!("target_dir: {:?}", target_dir));
-
-        let node_bin = resolve_node_binary(effective_node_version.as_deref(), opts.quiet).await?;
-        let actual_node_bin = if node_bin.as_os_str() == "node" {
-            which("node").unwrap_or(node_bin)
-        } else {
-            node_bin
-        };
-
-        let custom_node_dir = if effective_node_version.is_some()
-            && actual_node_bin.as_os_str() != "node"
-        {
-            actual_node_bin.parent().map(|p| p.to_path_buf())
-        } else {
-            None
-        };
-
-        if let Some(c_dir) = &custom_node_dir {
-            if let Ok(path_env) = env::var("PATH") {
-                let path_sep = if cfg!(windows) { ";" } else { ":" };
-                let new_path = format!("{}{path_sep}{path_env}", c_dir.display());
-                env::set_var("PATH", &new_path);
-            }
-        }
 
         let mut child_cmd;
         let mut child_args: Vec<String> = Vec::new();

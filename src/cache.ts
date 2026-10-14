@@ -366,6 +366,12 @@ function runNpmInstall(dir: string, quiet: boolean, npmArgs: string[], debug = f
     env: cleanNpmEnv(process.env),
     encoding: 'utf8',
   })
+  if (res.error) {
+    if ((res.error as NodeJS.ErrnoException).code === 'ENOENT') {
+      throw new Error("Node.js is not installed or not found on PATH. Recommendation: run with '--node 22' or '--node 24' to download Node.js automatically.")
+    }
+    throw res.error
+  }
   if (res.status !== 0) {
     const detail = (res.stderr || '').trim().split('\n').slice(0, 8).join('\n')
     throw new Error(`npm install failed (exit ${res.status ?? 'unknown'}) in ${dir}\n${detail}`)
