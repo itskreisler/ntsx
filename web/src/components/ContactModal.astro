@@ -1,131 +1,143 @@
 ---
-import { X, Send, Sparkles, CheckCircle2, Building, Cpu, ShieldAlert, ArrowRight } from 'lucide-astro';
+import { X, Terminal, Check, Copy, ArrowRight, Shield } from 'lucide-astro';
 ---
 
-<div id="contact-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md transition-opacity">
-
-  <div class="glass-panel max-w-xl w-full rounded-3xl border border-white/20 p-6 sm:p-8 shadow-2xl relative bg-[#080D1A] overflow-hidden">
-
+<div
+  id="contact-modal-overlay"
+  class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 transition-opacity duration-300 opacity-0"
+>
+  <div
+    id="contact-modal-card"
+    class="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-cyan-500/30 p-8 shadow-2xl transition-all duration-300 transform scale-95"
+  >
     <!-- Close Button -->
     <button
-      onclick="document.getElementById('contact-modal')?.classList.add('hidden')"
-      class="absolute top-6 right-6 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+      id="close-modal-btn"
+      class="absolute top-6 right-6 p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
     >
       <X class="w-5 h-5" />
     </button>
 
-    <!-- Modal Content Header -->
-    <div class="mb-6">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 font-mono mb-3">
-        <Sparkles class="w-3.5 h-3.5 text-amber-400" /> INSTANT ENTERPRISE ONBOARDING
+    <!-- Modal Content -->
+    <div class="space-y-6">
+      <div class="space-y-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-xs uppercase tracking-wider font-semibold">
+          Quick Start Guide
+        </div>
+        <h3 class="text-2xl font-bold text-white tracking-tight">
+          Install Native <span class="text-cyan-400">ntsx</span> Rust Binary
+        </h3>
+        <p class="text-slate-400 text-sm">
+          Download pre-compiled standalone Rust binaries for Linux and Windows, or build directly from source using Cargo.
+        </p>
       </div>
-      <h3 class="text-2xl sm:text-3xl font-extrabold text-white">Deploy Aura OS Engine</h3>
-      <p class="text-xs sm:text-sm text-slate-400 mt-1">Get immediate access to $50,000 in dedicated cloud credits and private cluster provisioning.</p>
-    </div>
 
-    <!-- Form Body -->
-    <form id="contact-form" class="space-y-4">
+      <!-- Command Block -->
+      <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 font-mono text-xs">
+        <div class="text-slate-500">// 1. Build & install native Rust binary</div>
+        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <code class="text-cyan-300">$ cargo install --path rust</code>
+          <button
+            id="modal-copy-btn-1"
+            class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-white transition-colors text-[10px]"
+          >
+            Copy
+          </button>
+        </div>
 
-      <!-- Scope Selection Pill Badges -->
-      <div>
-        <label class="block text-xs font-mono uppercase text-slate-300 mb-2 font-semibold">Primary Workload Objective</label>
-        <div class="grid grid-cols-2 gap-2" id="scope-selector">
-          <button type="button" class="scope-btn p-3 rounded-xl border border-purple-500/50 bg-purple-600/20 text-white text-xs font-semibold text-left transition-all active-scope">
-            ⚡ Autonomous Swarm Agents
-          </button>
-          <button type="button" class="scope-btn p-3 rounded-xl border border-white/10 bg-white/5 text-slate-300 text-xs font-semibold text-left transition-all hover:bg-white/10">
-            🎨 High-Speed Web Infrastructure
-          </button>
-          <button type="button" class="scope-btn p-3 rounded-xl border border-white/10 bg-white/5 text-slate-300 text-xs font-semibold text-left transition-all hover:bg-white/10">
-            🛡️ Confidential Hardware Enclave
-          </button>
-          <button type="button" class="scope-btn p-3 rounded-xl border border-white/10 bg-white/5 text-slate-300 text-xs font-semibold text-left transition-all hover:bg-white/10">
-            🚀 Custom Enterprise Cluster
+        <div class="text-slate-500 pt-2">// 2. Execute any script immediately</div>
+        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+          <code class="text-cyan-300">$ ntsx run my-script.ts</code>
+          <button
+            id="modal-copy-btn-2"
+            class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-white transition-colors text-[10px]"
+          >
+            Copy
           </button>
         </div>
       </div>
 
-      <!-- Inputs -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-xs font-mono text-slate-400 mb-1">Full Name</label>
-          <input
-            type="text"
-            required
-            placeholder="Sarah Connor"
-            class="w-full bg-[#04060A] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 transition-colors"
-          />
+      <!-- Feature Checklist -->
+      <div class="space-y-2 pt-2 text-xs font-mono text-slate-300">
+        <div class="flex items-center gap-2">
+          <Check class="w-4 h-4 text-emerald-400" />
+          <span>Zero local node_modules pollution</span>
         </div>
-
-        <div>
-          <label class="block text-xs font-mono text-slate-400 mb-1">Work Email</label>
-          <input
-            type="email"
-            required
-            placeholder="sarah@enterprise.com"
-            class="w-full bg-[#04060A] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 transition-colors"
-          />
+        <div class="flex items-center gap-2">
+          <Check class="w-4 h-4 text-emerald-400" />
+          <span>Automatic JSDoc dependency resolution</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <Check class="w-4 h-4 text-emerald-400" />
+          <span>Compiled for Linux & Windows (x86_64 / arm64)</span>
         </div>
       </div>
 
-      <div>
-        <label class="block text-xs font-mono text-slate-400 mb-1">Estimated Monthly API Volume</label>
-        <select class="w-full bg-[#04060A] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400 transition-colors">
-          <option>10M - 50M requests / month</option>
-          <option>50M - 250M requests / month</option>
-          <option>250M+ requests / month (Custom Dedicated Cluster)</option>
-        </select>
-      </div>
-
-      <!-- Submit Button -->
       <button
-        type="submit"
-        id="submit-contact-btn"
-        class="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 via-cyan-500 to-indigo-600 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-sm shadow-glow-violet transition-all flex items-center justify-center gap-2 group mt-2"
+        id="modal-done-btn"
+        class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-mono text-xs font-bold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all"
       >
-        <Send class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-        <span>Request $50,000 Credit & Access</span>
+        Dismiss
       </button>
-
-      <!-- Simulated Success Message -->
-      <div id="form-success" class="hidden p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs text-center flex items-center justify-center gap-2">
-        <CheckCircle2 class="w-5 h-5 text-emerald-400" />
-        <span>Access key provisioned! Check your email for login credentials.</span>
-      </div>
-
-    </form>
+    </div>
 
   </div>
 </div>
 
 <script>
-  const scopeBtns = document.querySelectorAll('.scope-btn');
-  const contactForm = document.getElementById('contact-form');
-  const formSuccess = document.getElementById('form-success');
-  const submitBtn = document.getElementById('submit-contact-btn');
+  const modalOverlay = document.getElementById('contact-modal-overlay');
+  const modalCard = document.getElementById('contact-modal-card');
+  const openBtn = document.getElementById('open-modal-btn');
+  const closeBtn = document.getElementById('close-modal-btn');
+  const doneBtn = document.getElementById('modal-done-btn');
 
-  scopeBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      scopeBtns.forEach(b => {
-        b.className = 'scope-btn p-3 rounded-xl border border-white/10 bg-white/5 text-slate-300 text-xs font-semibold text-left transition-all hover:bg-white/10';
-      });
-      btn.className = 'scope-btn p-3 rounded-xl border border-purple-500/50 bg-purple-600/20 text-white text-xs font-semibold text-left transition-all active-scope';
-    });
-  });
-
-  contactForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (submitBtn) submitBtn.innerHTML = '<span>Provisioning Enclave...</span>';
-
-    setTimeout(() => {
-      if (submitBtn) submitBtn.classList.add('hidden');
-      if (formSuccess) formSuccess.classList.remove('hidden');
-
+  function openModal() {
+    if (modalOverlay && modalCard) {
+      modalOverlay.classList.remove('hidden');
+      modalOverlay.classList.add('flex');
       setTimeout(() => {
-        document.getElementById('contact-modal')?.classList.add('hidden');
-        if (submitBtn) submitBtn.classList.remove('hidden');
-        if (formSuccess) formSuccess.classList.add('hidden');
-      }, 2500);
-    }, 800);
-  });
+        modalOverlay.classList.remove('opacity-0');
+        modalOverlay.classList.add('opacity-100');
+        modalCard.classList.remove('scale-95');
+        modalCard.classList.add('scale-100');
+      }, 10);
+    }
+  }
+
+  function closeModal() {
+    if (modalOverlay && modalCard) {
+      modalOverlay.classList.remove('opacity-100');
+      modalOverlay.classList.add('opacity-0');
+      modalCard.classList.remove('scale-100');
+      modalCard.classList.add('scale-95');
+      setTimeout(() => {
+        modalOverlay.classList.remove('flex');
+        modalOverlay.classList.add('hidden');
+      }, 300);
+    }
+  }
+
+  if (openBtn) openBtn.addEventListener('click', openModal);
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (doneBtn) doneBtn.addEventListener('click', closeModal);
+
+  // Copy helper
+  const copy1 = document.getElementById('modal-copy-btn-1');
+  const copy2 = document.getElementById('modal-copy-btn-2');
+
+  if (copy1) {
+    copy1.addEventListener('click', () => {
+      navigator.clipboard.writeText('cargo install --path rust');
+      copy1.textContent = 'Copied!';
+      setTimeout(() => copy1.textContent = 'Copy', 2000);
+    });
+  }
+
+  if (copy2) {
+    copy2.addEventListener('click', () => {
+      navigator.clipboard.writeText('ntsx run my-script.ts');
+      copy2.textContent = 'Copied!';
+      setTimeout(() => copy2.textContent = 'Copy', 2000);
+    });
+  }
 </script>

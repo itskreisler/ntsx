@@ -1,201 +1,223 @@
 ---
-import { Terminal, Play, RotateCcw, Check, Copy, Sparkles, Cpu, Zap, Code, Shield } from 'lucide-astro';
-
-const initialCode = `/** @aura Task Spec v4.0 */
-executeSwarm({
-  nodes: 64,
-  model: "aura-agent-v4-turbo",
-  task: "Synthesize high-frequency arbitrage logic with zero-leak memory isolation"
-})`;
+import { Play, Terminal, CheckCircle2, RefreshCw, Cpu } from 'lucide-astro';
 ---
 
-<section id="playground" class="py-24 relative overflow-hidden bg-[#060911]">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+<section id="sandbox" class="py-24 relative overflow-hidden bg-slate-950/80 border-y border-slate-800">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     <!-- Section Header -->
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 font-mono mb-4">
-        <Sparkles class="w-3.5 h-3.5 text-amber-400" /> LIVE INTERACTIVE SIMULATOR
+    <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-xs uppercase tracking-widest font-semibold">
+        Interactive CLI Playground
       </div>
-      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
-        Test <span class="text-gradient-primary">Aura OS Execution Engine</span>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+        Simulate <span class="text-cyan-400">ntsx</span> Execution Live
       </h2>
-      <p class="text-slate-300 text-base sm:text-lg">
-        Select a real-world enterprise agentic task below and execute it live. Notice the sub-0.4ms execution latency and instant streaming responses.
+      <p class="text-slate-400 text-sm sm:text-base">
+        Select an example script to observe JSDoc dependency resolution, symlink creation, and execution logs in real time.
       </p>
     </div>
 
-    <!-- Playground Interactive Card -->
-    <div class="glass-panel rounded-3xl border border-white/15 p-6 sm:p-8 shadow-2xl relative">
+    <!-- Playground Window -->
+    <div class="max-w-4xl mx-auto rounded-2xl bg-slate-900 border border-slate-700/80 shadow-2xl overflow-hidden backdrop-blur-2xl">
 
-      <!-- Top Preset Tabs -->
-      <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10 mb-6">
-        <div class="flex flex-wrap items-center gap-2" id="preset-tabs">
-          <button data-preset="swarm" class="preset-btn px-4 py-2 rounded-xl text-xs font-mono font-semibold transition-all bg-purple-600 text-white shadow-glow-violet">
-            ⚡ Swarm Agent Orchestration
+      <!-- Top Toolbar -->
+      <div class="flex flex-wrap items-center justify-between p-4 bg-slate-950 border-b border-slate-800 gap-3">
+
+        <!-- Preset Buttons -->
+        <div class="flex items-center gap-2">
+          <button
+            data-preset="github"
+            class="sandbox-preset-btn active px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+          >
+            octokit + chalk
           </button>
-          <button data-preset="frontend" class="preset-btn px-4 py-2 rounded-xl text-xs font-mono font-semibold transition-all bg-white/5 text-slate-400 hover:text-white hover:bg-white/10">
-            🎨 Micro-Frontend Synthesis
+          <button
+            data-preset="aws"
+            class="sandbox-preset-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all border border-transparent"
+          >
+            @aws-sdk/s3
           </button>
-          <button data-preset="database" class="preset-btn px-4 py-2 rounded-xl text-xs font-mono font-semibold transition-all bg-white/5 text-slate-400 hover:text-white hover:bg-white/10">
-            📊 Zero-Latency DB Sharding
+          <button
+            data-preset="tool"
+            class="sandbox-preset-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all border border-transparent"
+          >
+            ntsx tool
           </button>
         </div>
 
-        <div class="flex items-center gap-3">
-          <span class="text-xs font-mono text-slate-400 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Mode: Edge Wasm Kernel
-          </span>
-        </div>
+        <!-- Run Trigger -->
+        <button
+          id="run-sandbox-btn"
+          class="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-mono text-xs font-bold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-105 transition-all duration-200 active:scale-95"
+        >
+          <Play class="w-3.5 h-3.5 fill-current" />
+          <span>Execute Script</span>
+        </button>
       </div>
 
-      <!-- Main Editor & Terminal Split Screen -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Editor & Output Grid -->
+      <div class="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800 font-mono text-xs">
 
-        <!-- Left Pane: Input Parameters & Code -->
-        <div class="flex flex-col justify-between space-y-4">
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <label class="text-xs font-mono uppercase text-slate-400 font-semibold flex items-center gap-2">
-                <Code class="w-4 h-4 text-cyan-400" /> Agent Task Payload
-              </label>
-              <span id="prompt-chars" class="text-[11px] font-mono text-slate-500">142 chars</span>
-            </div>
-
-            <textarea
-              id="sandbox-input"
-              rows="7"
-              class="w-full bg-[#04060A] border border-white/10 rounded-2xl p-4 font-mono text-xs sm:text-sm text-cyan-300 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/60 transition-all resize-none shadow-inner"
-              set:html={initialCode}
-            ></textarea>
+        <!-- Code Window -->
+        <div class="p-5 bg-slate-900/90 text-slate-300 space-y-2 overflow-x-auto min-h-[320px]">
+          <div class="text-slate-500 pb-2 border-b border-slate-800 flex items-center justify-between">
+            <span>INPUT: script.ts</span>
+            <span class="text-[10px] text-cyan-400">JSDoc Parsed</span>
           </div>
+          <pre id="sandbox-code-view" class="text-slate-300 leading-relaxed font-mono">/**
+ * @ntsx
+ * @with octokit@3.1.0 chalk@5.3.0
+ * @node 22.12.0
+ */
+import chalk from 'chalk';
+import &#123; Octokit &#125; from 'octokit';
 
-          <!-- Parameter Controls -->
-          <div class="grid grid-cols-2 gap-4">
-            <div class="bg-[#04060A] p-3 rounded-xl border border-white/5">
-              <span class="text-[11px] font-mono text-slate-400 block mb-1">Execution Memory</span>
-              <select id="select-memory" class="w-full bg-transparent font-mono text-xs text-white focus:outline-none cursor-pointer">
-                <option value="128mb">128MB (Ultra Light)</option>
-                <option value="512mb" selected>512MB (Recommended)</option>
-                <option value="2gb">2GB (High Compute)</option>
-              </select>
-            </div>
-
-            <div class="bg-[#04060A] p-3 rounded-xl border border-white/5">
-              <span class="text-[11px] font-mono text-slate-400 block mb-1">Region Mesh</span>
-              <select id="select-region" class="w-full bg-transparent font-mono text-xs text-white focus:outline-none cursor-pointer">
-                <option value="global" selected>Global Anycast (280 POPs)</option>
-                <option value="us">US East / West Low-Latency</option>
-                <option value="eu">EU Sovereign Confidential</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Run Button -->
-          <button
-            id="run-sandbox-btn"
-            class="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 via-cyan-500 to-indigo-600 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-sm shadow-glow-violet transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
-          >
-            <Play class="w-4 h-4 fill-white group-hover:scale-110 transition-transform" />
-            <span>Execute Agent Pipeline</span>
-          </button>
+const octokit = new Octokit();
+console.log(chalk.cyan('Fetching repo metadata...'));
+const &#123; data &#125; = await octokit.rest.repos.get(&#123;
+  owner: 'kreisler',
+  repo: 'ntsx'
+&#125;);
+console.log(`Repo Stars: $&#123;data.stargazers_count&#125;`);</pre>
         </div>
 
-        <!-- Right Pane: Terminal Output -->
-        <div class="bg-[#04060A] rounded-2xl border border-white/10 p-4 sm:p-5 font-mono text-xs flex flex-col justify-between shadow-inner min-h-[320px]">
+        <!-- Console Stream Output -->
+        <div class="p-5 bg-slate-950 text-slate-300 flex flex-col justify-between min-h-[320px]">
           <div>
-            <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-3 text-slate-400">
-              <span class="flex items-center gap-2 text-[11px]">
-                <Terminal class="w-3.5 h-3.5 text-purple-400" /> Output Stream Console
+            <div class="text-slate-500 pb-2 border-b border-slate-800 flex items-center justify-between">
+              <span>OUTPUT STREAM</span>
+              <span id="sandbox-status" class="text-[10px] text-emerald-400 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Idle
               </span>
-              <div class="flex items-center gap-2">
-                <span id="exec-time" class="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Latency: --</span>
-                <button id="copy-output-btn" class="hover:text-white p-1" title="Copy Output">
-                  <Copy class="w-3.5 h-3.5" />
-                </button>
-              </div>
             </div>
 
-            <pre id="sandbox-output" class="text-slate-300 leading-relaxed overflow-x-auto whitespace-pre-wrap font-mono text-xs sm:text-sm">Ready to execute. Click "Execute Agent Pipeline" above to launch.</pre>
+            <div id="sandbox-logs" class="pt-3 space-y-2 text-[11px] leading-relaxed">
+              <div class="text-slate-500">$ ntsx run script.ts</div>
+              <div class="text-slate-600">Click "Execute Script" to run simulation...</div>
+            </div>
           </div>
 
-          <div class="pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Status: <strong id="status-text" class="text-slate-400">IDLE</strong></span>
-            <span>Security: <strong class="text-emerald-400">CONFIDENTIAL HARDWARE ENCLAVE</strong></span>
+          <!-- Sandbox Footer Stats -->
+          <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500">
+            <span>Execution Kernel: Rust v1.2</span>
+            <span id="sandbox-time" class="text-cyan-400">0.00ms</span>
           </div>
         </div>
 
       </div>
 
     </div>
-
   </div>
 </section>
 
-<!-- Interactive Sandbox JS Logic -->
 <script>
-  const presets = {
-    swarm: {
-      input: `/** @aura Task Spec v4.0 */\nexecuteSwarm({\n  nodes: 64,\n  model: "aura-agent-v4-turbo",\n  task: "Synthesize high-frequency arbitrage logic with zero-leak memory isolation"\n})`,
-      output: `[0.00ms] Initializing Aura OS WebAssembly Kernel...\n[0.12ms] Connected to 64 edge swarm nodes (Anycast Mesh)\n[0.28ms] Compiling WASM memory snapshot...\n[0.38ms] TASK COMPLETED SUCCESSFULLY!\n\n{\n  "status": "SUCCESS",\n  "execution_time_ms": 0.38,\n  "swarm_nodes_active": 64,\n  "memory_allocated_mb": 512,\n  "payload_hash": "0x7f9a1b8c3d",\n  "throughput_rps": 1250000\n}`
+  const presets: Record<string, { code: string; logs: string[]; executionTime: string }> = {
+    github: {
+      code: `/**\n * @ntsx\n * @with octokit@3.1.0 chalk@5.3.0\n * @node 22.12.0\n */\nimport chalk from 'chalk';\nimport { Octokit } from 'octokit';\n\nconst octokit = new Octokit();\nconsole.log(chalk.cyan('Fetching repo metadata...'));\nconst { data } = await octokit.rest.repos.get({\n  owner: 'kreisler',\n  repo: 'ntsx'\n});\nconsole.log(\`Repo Stars: \${data.stargazers_count}\`);`,
+      logs: [
+        '[ntsx] Parsing JSDoc annotations from script.ts...',
+        '[ntsx] Cache lookup: octokit@3.1.0, chalk@5.3.0 -> MATCH (hash: 8f92a1)',
+        '[ntsx] Linking ~/.cache/ntsx/npm/8f92a1 -> ./node_modules',
+        'Fetching repo metadata...',
+        'Repo Stars: 1,420',
+        '✔ Execution finished successfully.'
+      ],
+      executionTime: '0.41ms'
     },
-    frontend: {
-      input: `/** @aura Micro-Frontend Spec */\nsynthesizeUI({\n  components: ["Hero", "TelemetryGraph", "PricingCalculator"],\n  theme: "luxury-dark-mode",\n  framework: "Astro 5 + GSAP"\n})`,
-      output: `[0.00ms] Resolving Astro 5 SSR Component Tree...\n[0.10ms] Pre-rendering static HTML + inline CSS...\n[0.22ms] Bundling GSAP ScrollTrigger animations...\n[0.35ms] MICRO-FRONTEND RENDERED IN 0.35ms!\n\n{\n  "status": "RENDER_COMPLETE",\n  "first_contentful_paint": "0.12ms",\n  "bundle_size_kb": 14.2,\n  "seo_score": 100\n}`
+    aws: {
+      code: `/**\n * @ntsx\n * @with @aws-sdk/client-s3@3.500.0\n * @node 20.18.0\n */\nimport { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';\n\nconst client = new S3Client({ region: 'us-east-1' });\nconst command = new ListBucketsCommand({});\nconsole.log('Listing AWS S3 Buckets...');`,
+      logs: [
+        '[ntsx] Parsing JSDoc annotations from script.ts...',
+        '[ntsx] Pinning Node.js version 20.18.0 (cached: ~/.cache/ntsx/node/v20.18.0)',
+        '[ntsx] Symlink dependency tree prepared.',
+        'Listing AWS S3 Buckets...',
+        'Found 4 buckets in us-east-1.',
+        '✔ Execution finished successfully.'
+      ],
+      executionTime: '0.38ms'
     },
-    database: {
-      input: `/** @aura DB Sharding Engine */\nqueryEdgeMesh({\n  shards: 128,\n  crdt: true,\n  query: "SELECT * FROM user_session_state WHERE status = 'ACTIVE'"\n})`,
-      output: `[0.00ms] Scattering query across 128 global KV nodes...\n[0.15ms] Aggregating CRDT state locks...\n[0.29ms] Zero-leak encryption envelope verified...\n[0.39ms] 1,480,000 RECORDS RETRIEVED IN 0.39ms!\n\n{\n  "status": "QUERY_SUCCESS",\n  "shard_count": 128,\n  "latency_ms": 0.39,\n  "consistency_level": "STRONG_EVENTUAL"\n}`
+    tool: {
+      code: `// ntsx tool executes ephemeral binaries directly\n$ ntsx tool opencode-ai --version\n\n// ntsx tool inspects package bin fields automatically\n$ ntsx tool cowsay "ntsx makes CLI scripting instant!"`,
+      logs: [
+        '[ntsx tool] Inspecting package.json "bin" field for cowsay...',
+        '[ntsx tool] Executing binary target: cowsay',
+        ' ________________________________________',
+        '< ntsx makes CLI scripting instant! >',
+        ' ----------------------------------------',
+        '        \\   ^__^',
+        '         \\  (oo)\\_______',
+        '            (__)\\       )/\\',
+        '                ||----w |',
+        '                ||     ||',
+        '✔ Ephemeral tool executed without npm install.'
+      ],
+      executionTime: '0.29ms'
     }
   };
 
-  const inputEl = document.getElementById('sandbox-input');
-  const outputEl = document.getElementById('sandbox-output');
-  const execTimeEl = document.getElementById('exec-time');
-  const statusTextEl = document.getElementById('status-text');
+  const codeView = document.getElementById('sandbox-code-view');
+  const logsView = document.getElementById('sandbox-logs');
+  const statusView = document.getElementById('sandbox-status');
+  const timeView = document.getElementById('sandbox-time');
   const runBtn = document.getElementById('run-sandbox-btn');
-  const presetBtns = document.querySelectorAll('.preset-btn');
+  const presetBtns = document.querySelectorAll('.sandbox-preset-btn');
 
-  presetBtns.forEach((btn) => {
+  let activePreset = 'github';
+
+  presetBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      const presetKey = btn.getAttribute('data-preset');
-
       presetBtns.forEach(b => {
-        b.classList.remove('bg-purple-600', 'text-white', 'shadow-glow-violet');
-        b.classList.add('bg-white/5', 'text-slate-400');
+        b.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border-cyan-500/40');
+        b.classList.add('text-slate-400', 'border-transparent');
       });
+      btn.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border-cyan-500/40');
+      btn.classList.remove('text-slate-400', 'border-transparent');
 
-      btn.classList.remove('bg-white/5', 'text-slate-400');
-      btn.classList.add('bg-purple-600', 'text-white', 'shadow-glow-violet');
-
-      if (presetKey && presets[presetKey]) {
-        if (inputEl) inputEl.value = presets[presetKey].input;
-        if (outputEl) outputEl.textContent = 'Preset loaded. Click "Execute Agent Pipeline" to run.';
-        if (execTimeEl) execTimeEl.textContent = 'Latency: --';
-        if (statusTextEl) statusTextEl.textContent = 'READY';
+      const presetKey = btn.getAttribute('data-preset') || 'github';
+      activePreset = presetKey;
+      if (codeView) {
+        codeView.textContent = presets[presetKey].code;
       }
+      if (logsView) {
+        logsView.innerHTML = `
+          <div class="text-slate-500">$ ntsx run script.ts</div>
+          <div class="text-slate-600">Click "Execute Script" to run simulation...</div>
+        `;
+      }
+      if (timeView) timeView.textContent = '0.00ms';
     });
   });
 
-  runBtn?.addEventListener('click', () => {
-    if (statusTextEl) {
-      statusTextEl.textContent = 'RUNNING...';
-      statusTextEl.className = 'text-amber-400 animate-pulse';
-    }
-    if (outputEl) outputEl.textContent = 'Initializing Aura WASM Kernel... Executing...';
+  if (runBtn) {
+    runBtn.addEventListener('click', () => {
+      if (!logsView || !statusView || !timeView) return;
 
-    setTimeout(() => {
-      const randLatency = (0.32 + Math.random() * 0.12).toFixed(2);
-      if (execTimeEl) execTimeEl.textContent = `Latency: ${randLatency}ms`;
-      if (statusTextEl) {
-        statusTextEl.textContent = 'SUCCESS';
-        statusTextEl.className = 'text-emerald-400';
-      }
+      statusView.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> Executing...`;
+      logsView.innerHTML = `<div class="text-slate-500">$ ntsx run script.ts</div>`;
 
-      const currentInput = inputEl ? inputEl.value : '';
-      if (outputEl) {
-        outputEl.textContent = `[0.00ms] Compiling payload...\n[0.12ms] Dispatched to Anycast Edge Mesh...\n[${randLatency}ms] EXECUTED SUCCESSFULLY!\n\n{\n  "status": "EXECUTED",\n  "latency_ms": ${randLatency},\n  "input_preview": "${currentInput.substring(0, 40).replace(/\n/g, ' ')}...",\n  "wasm_memory_leak": "0.00 bytes",\n  "security_enclave": "VERIFIED_OK"\n}`;
-      }
-    }, 400);
-  });
+      const data = presets[activePreset];
+      let delay = 150;
+
+      data.logs.forEach((log, idx) => {
+        setTimeout(() => {
+          const line = document.createElement('div');
+          if (log.startsWith('[ntsx]')) {
+            line.className = 'text-cyan-400 font-semibold';
+          } else if (log.startsWith('✔')) {
+            line.className = 'text-emerald-400 font-bold';
+          } else {
+            line.className = 'text-slate-300';
+          }
+          line.textContent = log;
+          logsView.appendChild(line);
+
+          if (idx === data.logs.length - 1) {
+            statusView.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Success`;
+            timeView.textContent = data.executionTime;
+          }
+        }, delay * (idx + 1));
+      });
+    });
+  }
 </script>

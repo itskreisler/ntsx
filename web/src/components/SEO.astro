@@ -8,46 +8,29 @@ export interface Props {
 }
 
 const {
-  title = "AURA OS | Next-Gen Autonomous Web & AI Intelligence Infrastructure",
-  description = "AURA OS is the ultra-high performance AI & Web orchestration engine built for enterprise scale. Execute real-time agentic models with sub-millisecond latency, zero-cold start compute, and autonomous workflow pipelines.",
+  title = "ntsx — Native Rust Ephemeral TypeScript Script Engine",
+  description = "High-performance compiled Rust kernel for executing TypeScript and Node scripts with JSDoc @ntsx dependency resolution, instant symlink package caching, and automatic Node version pinning.",
   image = "/og-image.jpg",
   canonicalURL = Astro.url.href,
   type = "website"
 } = Astro.props;
 
-const siteName = "AURA OS Infrastructure";
-const twitterHandle = "@aura_engine_ai";
+const siteName = "ntsx Engine";
 
 // Structured Data JSON-LD
 const schemaOrgJSON = JSON.stringify([
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "AURA OS Engine",
-    "operatingSystem": "All Cloud Environments, Edge, Kubernetes, Serverless",
+    "name": "ntsx",
+    "operatingSystem": "Linux x86_64/aarch64, Windows x86_64/aarch64",
     "applicationCategory": "DeveloperApplication",
     "offers": {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD"
     },
-    "description": description,
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.98",
-      "ratingCount": "1280"
-    }
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "AURA Technologies Inc.",
-    "url": "https://aura-engine.ai",
-    "logo": "https://aura-engine.ai/favicon.svg",
-    "sameAs": [
-      "https://twitter.com/aura_engine_ai",
-      "https://github.com/aura-engine"
-    ]
+    "description": description
   }
 ]);
 ---
@@ -62,8 +45,7 @@ const schemaOrgJSON = JSON.stringify([
 <title>{title}</title>
 <meta name="title" content={title} />
 <meta name="description" content={description} />
-<meta name="keywords" content="Astro, AI Engine, Autonomous Agents, High Performance Computing, Web Infrastructure, Sub-millisecond Latency, GSAP, Web3, Edge Computing" />
-<meta name="author" content="AURA Technologies" />
+<meta name="keywords" content="ntsx, Rust, TypeScript, Node.js, CLI, Script Engine, Ephemeral Dependencies, JSDoc, Symlink Cache" />
 <meta name="robots" content="index, follow" />
 <link rel="canonical" href={canonicalURL} />
 
@@ -72,7 +54,6 @@ const schemaOrgJSON = JSON.stringify([
 <meta property="og:url" content={canonicalURL} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:image" content={new URL(image, Astro.url)} />
 <meta property="og:site_name" content={siteName} />
 
 <!-- Twitter -->
@@ -80,9 +61,6 @@ const schemaOrgJSON = JSON.stringify([
 <meta property="twitter:url" content={canonicalURL} />
 <meta property="twitter:title" content={title} />
 <meta property="twitter:description" content={description} />
-<meta property="twitter:image" content={new URL(image, Astro.url)} />
-<meta property="twitter:site" content={twitterHandle} />
-<meta property="twitter:creator" content={twitterHandle} />
 
 <!-- Structured Data -->
 <script type="application/ld+json" set:html={schemaOrgJSON} />

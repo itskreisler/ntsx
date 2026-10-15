@@ -4,7 +4,7 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://aura-engine.ai',
+  site: 'https://ntsx.dev',
   integrations: [
     tailwind({
       applyBaseStyles: false,

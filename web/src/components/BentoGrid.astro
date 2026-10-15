@@ -1,136 +1,147 @@
 ---
-import { Cpu, ShieldCheck, Zap, Layers, Sparkles, RefreshCw, Server, Lock, ArrowRight } from 'lucide-astro';
+import { Zap, ShieldCheck, Cpu, Layers, Link, HardDrive, Sparkles, Server } from 'lucide-astro';
 ---
 
-<section id="features" class="py-24 relative overflow-hidden">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+<section id="features" class="py-28 relative">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     <!-- Section Header -->
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-400 font-mono mb-4">
-        <Sparkles class="w-3.5 h-3.5" /> ARCHITECTURAL ADVANTAGE
+    <div class="text-center max-w-3xl mx-auto mb-20 space-y-4">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-xs uppercase tracking-widest font-semibold">
+        Engineered for High-Velocity Devs
       </div>
-      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
-        Built for <span class="text-gradient-violet">Uncompromising Performance</span>
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        Why <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">ntsx</span> Replaces Standard TS Runners
       </h2>
-      <p class="text-slate-300 text-base sm:text-lg">
-        Replace fragile cloud middleware with a unified kernel designed for ultra-low latency, autonomous agent execution, and enterprise security.
+      <p class="text-slate-400 text-base sm:text-lg font-light">
+        No `package.json` setup required. Pure inline script declarations with instantaneous caching and cross-platform native Rust execution.
       </p>
     </div>
 
-    <!-- Bento Grid Container -->
-    <div id="bento-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Spotlight Bento Grid -->
+    <div id="bento-container" class="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
 
-      <!-- Card 1: Sub-0.4ms Latency (Large 2 Col) -->
-      <div class="bento-card md:col-span-2 glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group glass-panel-hover">
-        <div class="absolute -right-12 -bottom-12 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl group-hover:bg-purple-600/30 transition-all pointer-events-none"></div>
-
-        <div class="relative z-10 flex flex-col justify-between h-full">
-          <div>
-            <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-6 group-hover:scale-110 transition-transform">
-              <Zap class="w-6 h-6" />
-            </div>
-            <h3 class="text-2xl font-bold text-white mb-2">Sub-0.4ms Ultra Latency Kernel</h3>
-            <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl">
-              Custom C++/Rust WebAssembly execution runtime that bypasses heavy OS hypervisors. Cold start times are completely eliminated with instant memory snapshot rehydration.
-            </p>
+      <!-- Card 1: JSDoc Inline Annotations -->
+      <div class="bento-card group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/50 transition-all duration-300 backdrop-blur-xl overflow-hidden md:col-span-2">
+        <div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+          <Sparkles class="w-48 h-48 text-cyan-400" />
+        </div>
+        <div class="relative z-10 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            <Zap class="w-6 h-6" />
           </div>
-
-          <div class="mt-8 pt-6 border-t border-white/10 grid grid-cols-3 gap-4 font-mono text-center">
-            <div class="bg-white/5 rounded-xl p-3 border border-white/5">
-              <span class="text-2xl font-extrabold text-cyan-400">0.38ms</span>
-              <p class="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Avg TTFB</p>
-            </div>
-            <div class="bg-white/5 rounded-xl p-3 border border-white/5">
-              <span class="text-2xl font-extrabold text-purple-400">100%</span>
-              <p class="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Zero Cold Starts</p>
-            </div>
-            <div class="bg-white/5 rounded-xl p-3 border border-white/5">
-              <span class="text-2xl font-extrabold text-emerald-400">10x</span>
-              <p class="text-[10px] text-slate-400 uppercase tracking-wider mt-1">Memory Efficiency</p>
-            </div>
+          <h3 class="text-2xl font-bold text-white">Declarative JSDoc Dependencies</h3>
+          <p class="text-slate-400 max-w-lg text-sm leading-relaxed">
+            Specify package requirements directly in your script header using <code class="text-cyan-300 font-mono">@with package@version</code> annotations. <strong class="text-white">ntsx</strong> automatically extracts dependencies, sorts packages alphabetically, and generates deterministically hashed environments.
+          </p>
+          <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 space-y-1">
+            <div class="text-purple-400">/**</div>
+            <div class="text-purple-400 pl-3">* @ntsx</div>
+            <div class="text-cyan-400 pl-3">* @with lodash-es@4.17.21 zookeeper@1.0.0</div>
+            <div class="text-cyan-400 pl-3">* @node 22.12.0</div>
+            <div class="text-purple-400 pl-3">*/</div>
           </div>
         </div>
       </div>
 
-      <!-- Card 2: Autonomous Swarm Agents -->
-      <div class="bento-card glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group glass-panel-hover flex flex-col justify-between">
-        <div>
-          <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-6 group-hover:scale-110 transition-transform">
+      <!-- Card 2: Instant Symlink Cache -->
+      <div class="bento-card group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/50 transition-all duration-300 backdrop-blur-xl overflow-hidden">
+        <div class="relative z-10 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <Link class="w-6 h-6" />
+          </div>
+          <h3 class="text-xl font-bold text-white">Symlink-Powered Caching</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Packages are downloaded into a global cache (<code class="text-indigo-300 font-mono">~/.cache/ntsx/npm/</code>) once and instantly linked into ephemeral execution directories.
+          </p>
+          <div class="pt-4 flex items-center justify-between text-xs font-mono text-slate-500 border-t border-slate-800/80">
+            <span>Cache Hit Overhead:</span>
+            <span class="text-emerald-400 font-bold">&lt; 0.4ms</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Automatic Node.js Pinning -->
+      <div class="bento-card group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/50 transition-all duration-300 backdrop-blur-xl overflow-hidden">
+        <div class="relative z-10 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <Server class="w-6 h-6" />
+          </div>
+          <h3 class="text-xl font-bold text-white">Node Version Pinning</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Declare <code class="text-emerald-300 font-mono">@node 20.18.0</code> to enforce runtime isolation across team CI/CD pipelines without installing nvm or n.
+          </p>
+          <div class="pt-4 flex items-center justify-between text-xs font-mono text-slate-500 border-t border-slate-800/80">
+            <span>Auto Binary Fetch:</span>
+            <span class="text-emerald-400 font-bold">Enabled</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4: Rust Binary Core -->
+      <div class="bento-card group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/50 transition-all duration-300 backdrop-blur-xl overflow-hidden md:col-span-2">
+        <div class="relative z-10 space-y-4">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
             <Cpu class="w-6 h-6" />
           </div>
-          <h3 class="text-xl font-bold text-white mb-2">Autonomous Swarm Engine</h3>
-          <p class="text-slate-300 text-sm leading-relaxed">
-            Orchestrate multi-agent workflows that automatically communicate, self-correct, and parallelize micro-tasks across global edge clusters.
+          <h3 class="text-2xl font-bold text-white">Native Rust Engine (<code class="text-amber-400 font-mono text-xl">ntsx-rust</code>)</h3>
+          <p class="text-slate-400 text-sm max-w-lg leading-relaxed">
+            Compiled with zero runtime overhead for Linux x86_64/aarch64 and Windows x86_64/aarch64. Handles argument forwarding, SHA-256 package hash verification, and binary symlinks before system Node execution.
           </p>
-        </div>
-
-        <div class="mt-6 p-4 rounded-xl bg-[#080D1A] border border-cyan-500/20 font-mono text-xs text-cyan-300 flex items-center gap-2">
-          <RefreshCw class="w-4 h-4 animate-spin text-cyan-400" />
-          <span>Swarm active: 64 sub-agents synced</span>
-        </div>
-      </div>
-
-      <!-- Card 3: Zero-Trust Security & HSM -->
-      <div class="bento-card glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group glass-panel-hover flex flex-col justify-between">
-        <div>
-          <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
-            <Lock class="w-6 h-6" />
-          </div>
-          <h3 class="text-xl font-bold text-white mb-2">Hardware-Isolated Enclaves</h3>
-          <p class="text-slate-300 text-sm leading-relaxed">
-            Every computation runs inside AES-256 encrypted confidential hardware memory bounds (Intel SGX / AMD SEV). Zero data leakage guaranteed.
-          </p>
-        </div>
-
-        <div class="mt-6 flex items-center justify-between text-xs font-mono text-emerald-400 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/20">
-          <span class="flex items-center gap-1.5"><ShieldCheck class="w-4 h-4" /> End-to-End Encrypted</span>
-          <span class="font-bold">SOC2 / ISO</span>
-        </div>
-      </div>
-
-      <!-- Card 4: Global Mesh Replication (Large 2 Col) -->
-      <div class="bento-card md:col-span-2 glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden group glass-panel-hover">
-        <div class="relative z-10 flex flex-col justify-between h-full">
-          <div>
-            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-6 group-hover:scale-110 transition-transform">
-              <Server class="w-6 h-6" />
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 font-mono text-xs">
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-center text-slate-300">
+              <span class="block text-slate-500 text-[10px]">LINUX</span>
+              <span>x86_64 / arm64</span>
             </div>
-            <h3 class="text-2xl font-bold text-white mb-2">Global Instant Mesh Replication</h3>
-            <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-xl">
-              Automatic state sync across 280+ POPs worldwide. Your application state and AI KV cache are propagated instantly with Conflict-Free Replicated Data Types (CRDTs).
-            </p>
-          </div>
-
-          <div class="mt-8 flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-[#080D1A] border border-white/10">
-            <div class="flex items-center gap-3">
-              <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span class="text-xs font-mono text-slate-300">280 Global Edge Regions Connected</span>
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-center text-slate-300">
+              <span class="block text-slate-500 text-[10px]">WINDOWS</span>
+              <span>x86_64 / arm64</span>
             </div>
-            <a href="#playground" class="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
-              Explore Network Mesh <ArrowRight class="w-3.5 h-3.5" />
-            </a>
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-center text-slate-300">
+              <span class="block text-slate-500 text-[10px]">LOCKFILE</span>
+              <span>&lt;script&gt;.lock</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-center text-slate-300">
+              <span class="block text-slate-500 text-[10px]">BINARY</span>
+              <span>Single Executable</span>
+            </div>
           </div>
         </div>
       </div>
 
     </div>
-
   </div>
 </section>
 
-<!-- Mouse Spotlight Script for Bento Grid -->
 <script>
+  import gsap from 'gsap';
+
+  // Mouse hover glow tracker for bento grid
+  const bentoContainer = document.getElementById('bento-container');
   const cards = document.querySelectorAll('.bento-card');
 
-  cards.forEach((card) => {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      card.style.setProperty('--mouse-x', `${x}px`);
-      card.style.setProperty('--mouse-y', `${y}px`);
+  if (bentoContainer) {
+    bentoContainer.addEventListener('mousemove', (e) => {
+      cards.forEach((card) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        (card as HTMLElement).style.setProperty('--mouse-x', `${x}px`);
+        (card as HTMLElement).style.setProperty('--mouse-y', `${y}px`);
+      });
     });
+  }
+
+  // Scroll Entrance
+  gsap.from('.bento-card', {
+    y: 40,
+    opacity: 0,
+    duration: 0.8,
+    stagger: 0.15,
+    ease: 'power3.out',
+    scrollTrigger: {
+      trigger: '#features',
+      start: 'top 80%'
+    }
   });
 </script>
