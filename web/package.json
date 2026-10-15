@@ -11,12 +11,19 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/react": "^7.1.0",
     "@astrojs/sitemap": "^3.2.1",
     "@astrojs/tailwind": "^5.1.5",
+    "@react-spring/web": "^10.1.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "astro": "^5.3.0",
+    "framer-motion": "^14.3.0",
     "gsap": "^3.12.7",
     "lenis": "^1.1.20",
     "lucide-astro": "^0.556.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "tailwindcss": "^3.4.17"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://aura-engine.ai/sitemap-index.xml
+Sitemap: https://ntsx.dev/sitemap-index.xml

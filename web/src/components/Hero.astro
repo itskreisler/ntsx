@@ -1,5 +1,6 @@
 ---
 import { Terminal, ShieldCheck, Zap, Copy, Check, Cpu, ArrowRight, Play, RefreshCw, Sparkles } from 'lucide-astro';
+import SplitText from './react/SplitText.jsx';
 ---
 
 <section class="relative min-h-screen pt-32 pb-20 flex items-center justify-center overflow-hidden bg-[#07090E]">
@@ -21,11 +22,21 @@ import { Terminal, ShieldCheck, Zap, Copy, Check, Cpu, ArrowRight, Play, Refresh
           </span>
         </div>
 
-        <!-- Main Headline -->
+        <!-- Main Headline with SplitText Animation -->
         <h1 class="hero-item text-4xl sm:text-6xl xl:text-7xl font-extrabold text-white tracking-tight leading-[1.08]">
-          Run TypeScript Scripts with <br />
+          <SplitText
+            client:load
+            text="Run TypeScript Scripts with"
+            className="text-white"
+            delay={25}
+          />
+          <br />
           <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-cyan-400 drop-shadow-[0_0_40px_rgba(255,79,0,0.4)]">
-            Zero Local Setup.
+            <SplitText
+              client:load
+              text="Zero Local Setup."
+              delay={35}
+            />
           </span>
         </h1>
 
@@ -138,15 +149,15 @@ import { Terminal, ShieldCheck, Zap, Copy, Check, Cpu, ArrowRight, Play, Refresh
       status: 'Symlink linked in 0.38ms',
       node: 'node v22.12.0 (pinned)',
       html: `
-        <p class="text-slate-500">/**</p>
-        <p class="text-orange-400 pl-2"> * <span class="text-amber-400 font-bold">@ntsx</span></p>
-        <p class="text-orange-400 pl-2"> * <span class="text-amber-400">@with</span> hono@4.1.0 jose@5.2.0</p>
-        <p class="text-orange-400 pl-2"> * <span class="text-amber-400">@node</span> 22.12.0</p>
-        <p class="text-slate-500 pl-2"> */</p>
-        <p class="text-cyan-300 pt-1">import { <span class="text-white">Hono</span> } from <span class="text-emerald-300">'hono'</span>;</p>
-        <p class="text-blue-400">const <span class="text-white">app</span> = <span class="text-purple-300">new</span> <span class="text-amber-300">Hono</span>();</p>
-        <p class="text-white">app.<span class="text-amber-300">get</span>(<span class="text-emerald-300">'/api/health'</span>, (c) =&gt; c.<span class="text-amber-300">json</span>(&#123; <span class="text-cyan-300">status</span>: <span class="text-emerald-300">'ok'</span> &#125;));</p>
-        <p class="text-emerald-400 font-semibold pt-1">// Native Rust engine installs packages into ~/.cache/ntsx/npm/</p>
+        <p class="hero-code-line text-slate-500">/**</p>
+        <p class="hero-code-line text-orange-400 pl-2"> * <span class="text-amber-400 font-bold">@ntsx</span></p>
+        <p class="hero-code-line text-orange-400 pl-2"> * <span class="text-amber-400">@with</span> hono@4.1.0 jose@5.2.0</p>
+        <p class="hero-code-line text-orange-400 pl-2"> * <span class="text-amber-400">@node</span> 22.12.0</p>
+        <p class="hero-code-line text-slate-500 pl-2"> */</p>
+        <p class="hero-code-line text-cyan-300 pt-1">import { <span class="text-white">Hono</span> } from <span class="text-emerald-300">'hono'</span>;</p>
+        <p class="hero-code-line text-blue-400">const <span class="text-white">app</span> = <span class="text-purple-300">new</span> <span class="text-amber-300">Hono</span>();</p>
+        <p class="hero-code-line text-white">app.<span class="text-amber-300">get</span>(<span class="text-emerald-300">'/api/health'</span>, (c) =&gt; c.<span class="text-amber-300">json</span>(&#123; <span class="text-cyan-300">status</span>: <span class="text-emerald-300">'ok'</span> &#125;));</p>
+        <p class="hero-code-line text-emerald-400 font-semibold pt-1">// Native Rust engine installs packages into ~/.cache/ntsx/npm/</p>
       `
     },
     axios: {
@@ -155,24 +166,24 @@ import { Terminal, ShieldCheck, Zap, Copy, Check, Cpu, ArrowRight, Play, Refresh
       status: 'Node v20.18.0 downloaded & cached',
       node: 'node v20.18.0 (pinned via CLI)',
       html: `
-        <p class="text-slate-500">// No JSDoc header required — pass packages & node version via CLI!</p>
-        <p class="text-cyan-300 pt-1">import <span class="text-white">axios</span> from <span class="text-emerald-300">'axios'</span>;</p>
-        <p class="text-blue-400">const <span class="text-white">res</span> = <span class="text-purple-300">await</span> axios.<span class="text-amber-300">get</span>(<span class="text-emerald-300">'https://api.github.com/zen'</span>);</p>
-        <p class="text-white">console.<span class="text-amber-300">log</span>(<span class="text-emerald-300">'GitHub Zen:'</span>, res.data);</p>
-        <p class="text-emerald-400 font-semibold pt-1">// Node release isolated in ~/.cache/ntsx/node/v20.18.0</p>
+        <p class="hero-code-line text-slate-500">// No JSDoc header required — pass packages & node version via CLI!</p>
+        <p class="hero-code-line text-cyan-300 pt-1">import <span class="text-white">axios</span> from <span class="text-emerald-300">'axios'</span>;</p>
+        <p class="hero-code-line text-blue-400">const <span class="text-white">res</span> = <span class="text-purple-300">await</span> axios.<span class="text-amber-300">get</span>(<span class="text-emerald-300">'https://api.github.com/zen'</span>);</p>
+        <p class="hero-code-line text-white">console.<span class="text-amber-300">log</span>(<span class="text-emerald-300">'GitHub Zen:'</span>, res.data);</p>
+        <p class="hero-code-line text-emerald-400 font-semibold pt-1">// Node release isolated in ~/.cache/ntsx/node/v20.18.0</p>
       `
     },
     env: {
-      filename: 'inline-eval.ts',
-      command: 'ntsx run --node-args "--env-file=.env" -e "import { loadEnvFile } from \'node:process\'; loadEnvFile(); console.log(process.env.DB_PASS);"',
-      status: 'Inline execution without .env file pollution',
+      filename: 'inline-env.ts',
+      command: 'API_KEY="sk_prod_99" DB_URL="postgres://localhost/db" ntsx run inline-env.ts',
+      status: 'Inline process.env injected without .env file',
       node: 'node v22.12.0',
       html: `
-        <p class="text-slate-500">// Load .env file directly into process.env without modifying local project!</p>
-        <p class="text-cyan-300 pt-1">import { <span class="text-white">loadEnvFile</span> } from <span class="text-emerald-300">'node:process'</span>;</p>
-        <p class="text-white"><span class="text-amber-300">loadEnvFile</span>();</p>
-        <p class="text-white">console.<span class="text-amber-300">log</span>(<span class="text-emerald-300">'Loaded DB Secret:'</span>, process.env.<span class="text-orange-300">DB_PASS</span>);</p>
-        <p class="text-emerald-400 font-semibold pt-1">// Zero polluting global dependencies or local node_modules</p>
+        <p class="hero-code-line text-slate-500">// Pass environment variables directly in shell without creating any .env file!</p>
+        <p class="hero-code-line text-cyan-300 pt-1">const <span class="text-white">apiKey</span> = process.env.<span class="text-orange-300">API_KEY</span>;</p>
+        <p class="hero-code-line text-blue-400">const <span class="text-white">dbUrl</span> = process.env.<span class="text-orange-300">DB_URL</span>;</p>
+        <p class="hero-code-line text-white">console.<span class="text-amber-300">log</span>(<span class="text-emerald-300">'Connecting with key:'</span>, apiKey);</p>
+        <p class="hero-code-line text-emerald-400 font-semibold pt-1">// Works natively in CI, Docker, and local terminal workflows</p>
       `
     },
     args: {
@@ -181,11 +192,11 @@ import { Terminal, ShieldCheck, Zap, Copy, Check, Cpu, ArrowRight, Play, Refresh
       status: 'Arguments forwarded cleanly via --',
       node: 'node v22.12.0',
       html: `
-        <p class="text-slate-500">// Arguments after -- are passed straight to process.argv</p>
-        <p class="text-cyan-300 pt-1">import <span class="text-white">axios</span> from <span class="text-emerald-300">'axios'</span>;</p>
-        <p class="text-blue-400">const <span class="text-white">args</span> = process.argv.<span class="text-amber-300">slice</span>(<span class="text-amber-300">2</span>);</p>
-        <p class="text-white">console.<span class="text-amber-300">log</span>(<span class="text-emerald-300">'Forwarded Args:'</span>, args);</p>
-        <p class="text-slate-400">// Outputs: ["--to=es", "--text=Hello World"]</p>
+        <p class="hero-code-line text-slate-500">// Arguments after -- are passed straight to process.argv</p>
+        <p class="hero-code-line text-cyan-300 pt-1">import <span class="text-white">axios</span> from <span class="text-emerald-300">'axios'</span>;</p>
+        <p class="hero-code-line text-blue-400">const <span class="text-white">args</span> = process.argv.<span class="text-amber-300">slice</span>(<span class="text-amber-300">2</span>);</p>
+        <p class="hero-code-line text-white">console.<span class="text-amber-300">log</span>(<span class="text-emerald-300">'Forwarded Args:'</span>, args);</p>
+        <p class="hero-code-line text-slate-400">// Outputs: ["--to=es", "--text=Hello World"]</p>
       `
     },
     tool: {
@@ -194,10 +205,10 @@ import { Terminal, ShieldCheck, Zap, Copy, Check, Cpu, ArrowRight, Play, Refresh
       status: 'Executed ephemeral binary directly from npm cache',
       node: 'node v22.12.0',
       html: `
-        <p class="text-slate-500">// ntsx tool inspects package.json "bin" field and executes directly</p>
-        <p class="text-amber-300 pt-1">$ ntsx tool opencode-ai --version</p>
-        <p class="text-white">opencode-ai v1.4.2</p>
-        <p class="text-emerald-400 font-semibold pt-1">// No global npm install -g required!</p>
+        <p class="hero-code-line text-slate-500">// ntsx tool inspects package.json "bin" field and executes directly</p>
+        <p class="hero-code-line text-amber-300 pt-1">$ ntsx tool opencode-ai --version</p>
+        <p class="hero-code-line text-white">opencode-ai v1.4.2</p>
+        <p class="hero-code-line text-emerald-400 font-semibold pt-1">// No global npm install -g required!</p>
       `
     }
   };
@@ -216,7 +227,7 @@ import { Terminal, ShieldCheck, Zap, Copy, Check, Cpu, ArrowRight, Play, Refresh
     gsap.to(codeContainer, {
       opacity: 0,
       y: -8,
-      duration: 0.18,
+      duration: 0.15,
       onComplete: () => {
         codeContainer.innerHTML = data.html;
         filenameEl.textContent = data.filename;
@@ -227,15 +238,47 @@ import { Terminal, ShieldCheck, Zap, Copy, Check, Cpu, ArrowRight, Play, Refresh
         gsap.to(codeContainer, {
           opacity: 1,
           y: 0,
-          duration: 0.3,
+          duration: 0.25,
           ease: 'power2.out'
+        });
+
+        gsap.from('.hero-code-line', {
+          opacity: 0,
+          x: -10,
+          duration: 0.2,
+          stagger: 0.04,
+          ease: 'power1.out'
         });
       }
     });
   }
 
-  tabs.forEach((tab) => {
+  const keys: (keyof typeof heroExamples)[] = ['hono', 'axios', 'env', 'args', 'tool'];
+  let currentIdx = 0;
+  let autoCycleTimer: any = null;
+
+  function autoCycle() {
+    if (autoCycleTimer) clearInterval(autoCycleTimer);
+    autoCycleTimer = setInterval(() => {
+      currentIdx = (currentIdx + 1) % keys.length;
+      const nextKey = keys[currentIdx];
+
+      tabs.forEach(t => {
+        if (t.getAttribute('data-hero-tab') === nextKey) {
+          t.classList.add('active', 'bg-orange-500/20', 'text-orange-300', 'border-orange-500/40');
+          t.classList.remove('bg-slate-800', 'text-slate-400', 'border-slate-700');
+        } else {
+          t.classList.remove('active', 'bg-orange-500/20', 'text-orange-300', 'border-orange-500/40');
+          t.classList.add('bg-slate-800', 'text-slate-400', 'border-slate-700');
+        }
+      });
+      renderHeroExample(nextKey);
+    }, 4500);
+  }
+
+  tabs.forEach((tab, index) => {
     tab.addEventListener('click', () => {
+      currentIdx = index;
       tabs.forEach(t => {
         t.classList.remove('active', 'bg-orange-500/20', 'text-orange-300', 'border-orange-500/40');
         t.classList.add('bg-slate-800', 'text-slate-400', 'border-slate-700');
@@ -245,11 +288,13 @@ import { Terminal, ShieldCheck, Zap, Copy, Check, Cpu, ArrowRight, Play, Refresh
 
       const key = (tab.getAttribute('data-hero-tab') || 'hono') as keyof typeof heroExamples;
       renderHeroExample(key);
+      autoCycle();
     });
   });
 
-  // Initial render
+  // Initial render & start auto-cycling
   renderHeroExample('hono');
+  autoCycle();
 
   // GSAP Entrance Animations
   gsap.from('.hero-item', {
