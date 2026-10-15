@@ -1,0 +1,96 @@
+---
+import { ChevronDown, HelpCircle } from 'lucide-astro';
+
+const faqs = [
+  {
+    q: "How does Aura OS achieve sub-0.4ms latency without cold starts?",
+    a: "Aura OS utilizes a custom WebAssembly micro-kernel written in Rust and C++ that pre-hydrates execution state snapshots in hardware memory. When an incoming request arrives at any of our 280+ POPs, execution occurs immediately in shared memory without spawning virtual machines."
+  },
+  {
+    q: "Is Aura OS compatible with existing Node.js, Astro, and Python workloads?",
+    a: "Yes. Aura OS natively executes standard WASI, Node.js ESM modules, Python micro-runtimes, and Astro static/SSR deployments. You can deploy existing code without refactoring."
+  },
+  {
+    q: "How does the confidential enclave hardware isolation work?",
+    a: "Every tenant workspace runs inside hardware-backed confidential memory bounds (Intel SGX / AMD SEV). Memory contents are encrypted at rest, in transit, and during CPU processing."
+  },
+  {
+    q: "What support SLA is provided for enterprise plans?",
+    a: "Enterprise tier includes a guaranteed 99.999% uptime SLA, sub-15 minute response times from dedicated principal infrastructure engineers, and custom private VPC peering."
+  },
+  {
+    q: "How does billing work for sudden traffic spikes?",
+    a: "Aura OS automatically scales compute nodes globally within milliseconds. You are billed strictly per execution millisecond with no penalty for unexpected peak loads."
+  }
+];
+---
+
+<section id="faq" class="py-24 relative overflow-hidden bg-[#060911]">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+    <!-- Section Header -->
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300 font-mono mb-4">
+        <HelpCircle class="w-3.5 h-3.5" /> FREQUENTLY ASKED QUESTIONS
+      </div>
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+        Everything You Need <span class="text-gradient-primary">To Know</span>
+      </h2>
+      <p class="text-slate-300 text-sm sm:text-base">
+        Got questions about architecture, security, or migration? We have answers.
+      </p>
+    </div>
+
+    <!-- Accordion Items -->
+    <div class="space-y-4" id="faq-accordion">
+      {faqs.map((faq, index) => (
+        <div class="faq-item glass-panel rounded-2xl border border-white/10 overflow-hidden transition-all">
+          <button
+            class="faq-trigger w-full px-6 py-5 flex items-center justify-between text-left focus:outline-none group"
+            data-index={index}
+          >
+            <span class="text-base sm:text-lg font-semibold text-white group-hover:text-cyan-400 transition-colors pr-4">
+              {faq.q}
+            </span>
+            <ChevronDown class="faq-icon w-5 h-5 text-slate-400 group-hover:text-cyan-400 transition-transform duration-300 flex-shrink-0" />
+          </button>
+
+          <div class="faq-content max-h-0 overflow-hidden transition-all duration-300 ease-in-out px-6">
+            <p class="pb-6 text-slate-300 text-sm sm:text-base leading-relaxed border-t border-white/5 pt-4">
+              {faq.a}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>
+
+<!-- Accordion Interactive Script -->
+<script>
+  const items = document.querySelectorAll('.faq-item');
+
+  items.forEach((item) => {
+    const trigger = item.querySelector('.faq-trigger');
+    const content = item.querySelector('.faq-content') as HTMLElement;
+    const icon = item.querySelector('.faq-icon') as HTMLElement;
+
+    trigger?.addEventListener('click', () => {
+      const isOpen = content.style.maxHeight && content.style.maxHeight !== '0px';
+
+      // Close all other accordions
+      document.querySelectorAll('.faq-content').forEach((c) => {
+        (c as HTMLElement).style.maxHeight = '0px';
+      });
+      document.querySelectorAll('.faq-icon').forEach((i) => {
+        (i as HTMLElement).style.transform = 'rotate(0deg)';
+      });
+
+      if (!isOpen) {
+        content.style.maxHeight = `${content.scrollHeight}px`;
+        icon.style.transform = 'rotate(180deg)';
+      }
+    });
+  });
+</script>

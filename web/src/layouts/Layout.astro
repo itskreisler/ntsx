@@ -1,0 +1,62 @@
+---
+import SEO from '../components/SEO.astro';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <SEO title={title} description={description} />
+  </head>
+  <body class="bg-[#04060A] text-slate-100 antialiased selection:bg-purple-600 selection:text-white relative">
+    <!-- Ambient Cursor Glow Canvas / Pointer Effect -->
+    <div id="cursor-glow" class="pointer-events-none fixed -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-radial-gradient from-purple-600/15 via-cyan-500/10 to-transparent blur-3xl z-0 transition-transform duration-75 ease-out opacity-0 md:opacity-100"></div>
+
+    <!-- Background Grid & Glow Orbs -->
+    <div class="fixed inset-0 bg-grid-pattern bg-[size:60px_60px] opacity-[0.15] pointer-events-none z-0"></div>
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-aura-glow opacity-60 pointer-events-none z-0"></div>
+
+    <!-- Page Content -->
+    <div class="relative z-10 min-h-screen flex flex-col justify-between">
+      <slot />
+    </div>
+
+    <!-- Lenis Smooth Scroll Script -->
+    <script>
+      import Lenis from 'lenis';
+
+      const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: 'vertical',
+        gestureOrientation: 'vertical',
+        smoothWheel: true,
+        wheelMultiplier: 1,
+        touchMultiplier: 2,
+      });
+
+      function raf(time: number) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+      }
+
+      requestAnimationFrame(raf);
+
+      // Interactive Cursor Glow Handler
+      const glow = document.getElementById('cursor-glow');
+      window.addEventListener('mousemove', (e) => {
+        if (glow) {
+          glow.style.left = `${e.clientX}px`;
+          glow.style.top = `${e.clientY}px`;
+        }
+      });
+    </script>
+  </body>
+</html>

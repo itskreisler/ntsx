@@ -1,0 +1,193 @@
+---
+import { Check, Sparkles, ArrowRight, Zap, Shield, Cpu, HelpCircle } from 'lucide-astro';
+---
+
+<section id="pricing" class="py-24 relative overflow-hidden">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+    <!-- Section Header -->
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400 font-mono mb-4">
+        <Sparkles class="w-3.5 h-3.5" /> DYNAMIC SCALE PRICING
+      </div>
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
+        Pay Only For <span class="text-gradient-gold">Actual Execution Compute</span>
+      </h2>
+      <p class="text-slate-300 text-base sm:text-lg">
+        Transparent billing based on exact millisecond compute usage. No hidden cluster fees or idle server charges.
+      </p>
+    </div>
+
+    <!-- Pricing Calculator Wrapper -->
+    <div class="glass-panel rounded-3xl p-6 sm:p-10 border border-white/15 shadow-2xl relative">
+
+      <!-- Top Billing Cycle Toggle -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-6 pb-8 border-b border-white/10 mb-8">
+        <div>
+          <h3 class="text-xl font-bold text-white mb-1">Estimate Your Usage & Cost</h3>
+          <p class="text-xs text-slate-400">Drag the slider below to calculate your estimated monthly expenditure</p>
+        </div>
+
+        <div class="flex items-center gap-3 bg-[#04060A] p-1.5 rounded-2xl border border-white/10">
+          <button id="billing-monthly" class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-purple-600 transition-all">
+            Monthly Billing
+          </button>
+          <button id="billing-annual" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
+            Annual Billing <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">Save 20%</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Slider & Cost Breakdown Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+
+        <!-- Left 7 Cols: Slider & Scale Details -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-semibold text-slate-300">Monthly API Requests:</span>
+            <span id="req-display" class="text-2xl font-extrabold text-cyan-400 font-mono">10,000,000 req/mo</span>
+          </div>
+
+          <!-- Custom Styled Slider -->
+          <div class="relative py-2">
+            <input
+              type="range"
+              id="pricing-slider"
+              min="1"
+              max="100"
+              value="25"
+              class="w-full h-3 bg-[#04060A] rounded-lg appearance-none cursor-pointer accent-cyan-400 border border-white/10"
+            />
+          </div>
+
+          <div class="flex justify-between text-[11px] font-mono text-slate-500">
+            <span>1M reqs</span>
+            <span>25M reqs</span>
+            <span>50M reqs</span>
+            <span>100M+ reqs (Enterprise)</span>
+          </div>
+
+          <!-- Dynamic Feature Checklist included in this scale -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 font-sans text-xs text-slate-300">
+            <div class="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/5">
+              <Check class="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>Sub-0.4ms Latency SLA</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/5">
+              <Check class="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>280+ Edge POPs Included</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/5">
+              <Check class="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>Confidential Memory Enclaves</span>
+            </div>
+            <div class="flex items-center gap-2 p-2.5 rounded-xl bg-white/5 border border-white/5">
+              <Check class="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>24/7 Dedicated Solutions Engineer</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 5 Cols: Calculated Total Card -->
+        <div class="lg:col-span-5 glass-panel rounded-2xl p-6 sm:p-8 border border-purple-500/30 bg-[#080D1A] flex flex-col justify-between space-y-6 shadow-glow-violet">
+          <div>
+            <span class="text-xs font-mono text-purple-300 uppercase tracking-widest block mb-2">Estimated Investment</span>
+            <div class="flex items-baseline gap-2">
+              <span id="price-display" class="text-5xl font-black text-white font-mono">$240</span>
+              <span class="text-slate-400 text-sm font-sans">/ month</span>
+            </div>
+            <p id="savings-display" class="text-xs text-emerald-400 font-mono mt-2 hidden">
+              🎉 Annual discount applied! Saving $576 / year
+            </p>
+          </div>
+
+          <div class="space-y-3 pt-4 border-t border-white/10 font-mono text-xs text-slate-400">
+            <div class="flex justify-between">
+              <span>Cost per 1M Reqs:</span>
+              <span id="cost-per-m" class="text-white font-bold">$24.00</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Included Bandwidth:</span>
+              <span id="bandwidth-display" class="text-white font-bold">2.5 TB</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Uptime SLA:</span>
+              <span class="text-emerald-400 font-bold">99.999%</span>
+            </div>
+          </div>
+
+          <button
+            onclick="document.getElementById('contact-modal')?.classList.remove('hidden')"
+            class="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-bold text-sm shadow-glow-violet hover:shadow-glow-cyan transition-all flex items-center justify-center gap-2 group active:scale-[0.98]"
+          >
+            <span>Deploy Custom Cluster</span>
+            <ArrowRight class="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- Slider & Billing Calculation Script -->
+<script>
+  let isAnnual = false;
+  const slider = document.getElementById('pricing-slider') as HTMLInputElement;
+  const reqDisplay = document.getElementById('req-display') as HTMLSpanElement;
+  const priceDisplay = document.getElementById('price-display') as HTMLSpanElement;
+  const costPerM = document.getElementById('cost-per-m') as HTMLSpanElement;
+  const bandwidthDisplay = document.getElementById('bandwidth-display') as HTMLSpanElement;
+  const savingsDisplay = document.getElementById('savings-display') as HTMLParagraphElement;
+
+  const btnMonthly = document.getElementById('billing-monthly');
+  const btnAnnual = document.getElementById('billing-annual');
+
+  function updatePrice() {
+    const val = parseInt(slider.value); // 1 to 100 representing 1M to 100M reqs
+    const reqsM = Math.max(1, Math.round(val * 1.0));
+
+    // Base cost $10 per 1M reqs, with volume discount
+    let baseRate = 12.0;
+    if (reqsM > 10) baseRate = 10.0;
+    if (reqsM > 50) baseRate = 8.0;
+
+    let totalPrice = reqsM * baseRate;
+    if (isAnnual) totalPrice = totalPrice * 0.8;
+
+    reqDisplay.textContent = `${reqsM.toLocaleString()},000,000 req/mo`;
+    priceDisplay.textContent = `$${Math.round(totalPrice).toLocaleString()}`;
+    costPerM.textContent = `$${(baseRate * (isAnnual ? 0.8 : 1.0)).toFixed(2)}`;
+    bandwidthDisplay.textContent = `${(reqsM * 0.25).toFixed(1)} TB`;
+
+    if (isAnnual) {
+      const annualSavings = Math.round(reqsM * baseRate * 12 * 0.2);
+      savingsDisplay.textContent = `🎉 Annual discount applied! Saving $${annualSavings.toLocaleString()} / year`;
+      savingsDisplay.classList.remove('hidden');
+    } else {
+      savingsDisplay.classList.add('hidden');
+    }
+  }
+
+  slider?.addEventListener('input', updatePrice);
+
+  btnMonthly?.addEventListener('click', () => {
+    isAnnual = false;
+    btnMonthly.className = 'px-4 py-2 rounded-xl text-xs font-semibold text-white bg-purple-600 transition-all';
+    btnAnnual?.classList.remove('bg-purple-600', 'text-white');
+    btnAnnual?.classList.add('text-slate-400');
+    updatePrice();
+  });
+
+  btnAnnual?.addEventListener('click', () => {
+    isAnnual = true;
+    btnAnnual.className = 'px-4 py-2 rounded-xl text-xs font-semibold text-white bg-purple-600 transition-all flex items-center gap-1.5';
+    btnMonthly?.classList.remove('bg-purple-600', 'text-white');
+    btnMonthly?.classList.add('text-slate-400');
+    updatePrice();
+  });
+
+  updatePrice();
+</script>

@@ -1,0 +1,88 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  canonicalURL?: string;
+  type?: string;
+}
+
+const {
+  title = "AURA OS | Next-Gen Autonomous Web & AI Intelligence Infrastructure",
+  description = "AURA OS is the ultra-high performance AI & Web orchestration engine built for enterprise scale. Execute real-time agentic models with sub-millisecond latency, zero-cold start compute, and autonomous workflow pipelines.",
+  image = "/og-image.jpg",
+  canonicalURL = Astro.url.href,
+  type = "website"
+} = Astro.props;
+
+const siteName = "AURA OS Infrastructure";
+const twitterHandle = "@aura_engine_ai";
+
+// Structured Data JSON-LD
+const schemaOrgJSON = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "AURA OS Engine",
+    "operatingSystem": "All Cloud Environments, Edge, Kubernetes, Serverless",
+    "applicationCategory": "DeveloperApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": description,
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.98",
+      "ratingCount": "1280"
+    }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "AURA Technologies Inc.",
+    "url": "https://aura-engine.ai",
+    "logo": "https://aura-engine.ai/favicon.svg",
+    "sameAs": [
+      "https://twitter.com/aura_engine_ai",
+      "https://github.com/aura-engine"
+    ]
+  }
+]);
+---
+
+<!-- Global Metadata -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<meta name="generator" content={Astro.generator} />
+
+<!-- Primary Meta Tags -->
+<title>{title}</title>
+<meta name="title" content={title} />
+<meta name="description" content={description} />
+<meta name="keywords" content="Astro, AI Engine, Autonomous Agents, High Performance Computing, Web Infrastructure, Sub-millisecond Latency, GSAP, Web3, Edge Computing" />
+<meta name="author" content="AURA Technologies" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href={canonicalURL} />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content={type} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={new URL(image, Astro.url)} />
+<meta property="og:site_name" content={siteName} />
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content={canonicalURL} />
+<meta property="twitter:title" content={title} />
+<meta property="twitter:description" content={description} />
+<meta property="twitter:image" content={new URL(image, Astro.url)} />
+<meta property="twitter:site" content={twitterHandle} />
+<meta property="twitter:creator" content={twitterHandle} />
+
+<!-- Structured Data -->
+<script type="application/ld+json" set:html={schemaOrgJSON} />

@@ -1,0 +1,83 @@
+---
+import { Cpu, ArrowUpRight, Sparkles, Menu, X } from 'lucide-astro';
+---
+
+<header class="sticky top-0 z-50 w-full px-4 sm:px-6 lg:px-8 py-4 transition-all duration-300">
+  <div class="max-w-7xl mx-auto glass-panel rounded-2xl px-5 py-3 flex items-center justify-between border border-white/10 shadow-2xl">
+
+    <!-- Logo & Brand -->
+    <a href="/" class="flex items-center gap-3 group">
+      <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-cyan-500 to-fuchsia-500 p-[1px] shadow-glow-violet group-hover:scale-105 transition-transform duration-300">
+        <div class="w-full h-full bg-[#0B0F19] rounded-[11px] flex items-center justify-center">
+          <Cpu class="w-5 h-5 text-cyan-400 group-hover:rotate-12 transition-transform duration-300" />
+        </div>
+      </div>
+      <div class="flex flex-col">
+        <span class="font-extrabold text-lg tracking-wider text-white flex items-center gap-1.5">
+          AURA <span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">v4.0</span>
+        </span>
+        <span class="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Web & AI OS</span>
+      </div>
+    </a>
+
+    <!-- Navigation Links -->
+    <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+      <a href="#features" class="hover:text-cyan-400 transition-colors flex items-center gap-1">Features</a>
+      <a href="#architecture" class="hover:text-cyan-400 transition-colors">Architecture</a>
+      <a href="#playground" class="hover:text-cyan-400 transition-colors flex items-center gap-1.5">
+        <Sparkles class="w-3.5 h-3.5 text-amber-400 animate-pulse" /> Sandbox
+      </a>
+      <a href="#pricing" class="hover:text-cyan-400 transition-colors">Pricing</a>
+      <a href="#faq" class="hover:text-cyan-400 transition-colors">FAQ</a>
+    </nav>
+
+    <!-- System Status & Action CTA -->
+    <div class="hidden sm:flex items-center gap-4">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 font-mono">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        Cluster Online
+      </div>
+
+      <button
+        onclick="document.getElementById('contact-modal')?.classList.remove('hidden')"
+        class="relative inline-flex items-center justify-center p-0.5 overflow-hidden text-xs font-semibold rounded-xl group bg-gradient-to-br from-purple-600 to-cyan-500 group-hover:from-purple-600 group-hover:to-cyan-400 hover:shadow-glow-cyan transition-all duration-300 active:scale-95"
+      >
+        <span class="relative px-4 py-2 transition-all ease-in duration-75 bg-[#0B0F19] rounded-[10px] group-hover:bg-opacity-0 text-white flex items-center gap-1.5">
+          Deploy Engine <ArrowUpRight class="w-3.5 h-3.5" />
+        </span>
+      </button>
+    </div>
+
+    <!-- Mobile Menu Button -->
+    <button id="mobile-menu-toggle" class="md:hidden text-slate-300 hover:text-white p-2">
+      <Menu class="w-6 h-6" />
+    </button>
+  </div>
+
+  <!-- Mobile Dropdown Navigation -->
+  <div id="mobile-menu" class="hidden md:hidden max-w-7xl mx-auto mt-2 glass-panel rounded-2xl p-6 border border-white/10 flex flex-col gap-4">
+    <a href="#features" class="text-slate-300 hover:text-cyan-400 py-2 border-b border-white/5">Features</a>
+    <a href="#architecture" class="text-slate-300 hover:text-cyan-400 py-2 border-b border-white/5">Architecture</a>
+    <a href="#playground" class="text-slate-300 hover:text-cyan-400 py-2 border-b border-white/5">Interactive Sandbox</a>
+    <a href="#pricing" class="text-slate-300 hover:text-cyan-400 py-2 border-b border-white/5">Pricing</a>
+    <a href="#faq" class="text-slate-300 hover:text-cyan-400 py-2">FAQ</a>
+    <button
+      onclick="document.getElementById('contact-modal')?.classList.remove('hidden')"
+      class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white font-semibold text-center mt-2"
+    >
+      Request Access
+    </button>
+  </div>
+</header>
+
+<script>
+  const toggleBtn = document.getElementById('mobile-menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  toggleBtn?.addEventListener('click', () => {
+    mobileMenu?.classList.toggle('hidden');
+  });
+</script>
