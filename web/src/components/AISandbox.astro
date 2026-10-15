@@ -11,10 +11,10 @@ import { Play, Terminal, CheckCircle2, RefreshCw, Cpu } from 'lucide-astro';
         Interactive CLI Playground
       </div>
       <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-        Simulate <span class="text-cyan-400">ntsx</span> Execution Live
+        Simulate <span class="text-cyan-400">ntsx Rust Engine</span> Live
       </h2>
       <p class="text-slate-400 text-sm sm:text-base">
-        Select an example script to observe JSDoc dependency resolution, symlink creation, and execution logs in real time.
+        Select a real-world script scenario to observe JSDoc dependency resolution, symlink creation, Node version downloads, and execution logs in real time.
       </p>
     </div>
 
@@ -25,18 +25,24 @@ import { Play, Terminal, CheckCircle2, RefreshCw, Cpu } from 'lucide-astro';
       <div class="flex flex-wrap items-center justify-between p-4 bg-slate-950 border-b border-slate-800 gap-3">
 
         <!-- Preset Buttons -->
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <button
-            data-preset="github"
+            data-preset="hono"
             class="sandbox-preset-btn active px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
           >
-            octokit + chalk
+            Hono + Jose JWT
           </button>
           <button
             data-preset="aws"
             class="sandbox-preset-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all border border-transparent"
           >
             @aws-sdk/s3
+          </button>
+          <button
+            data-preset="lock"
+            class="sandbox-preset-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all border border-transparent"
+          >
+            ntsx lock
           </button>
           <button
             data-preset="tool"
@@ -52,7 +58,7 @@ import { Play, Terminal, CheckCircle2, RefreshCw, Cpu } from 'lucide-astro';
           class="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-mono text-xs font-bold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-105 transition-all duration-200 active:scale-95"
         >
           <Play class="w-3.5 h-3.5 fill-current" />
-          <span>Execute Script</span>
+          <span>Execute Rust CLI</span>
         </button>
       </div>
 
@@ -67,19 +73,15 @@ import { Play, Terminal, CheckCircle2, RefreshCw, Cpu } from 'lucide-astro';
           </div>
           <pre id="sandbox-code-view" class="text-slate-300 leading-relaxed font-mono">/**
  * @ntsx
- * @with octokit@3.1.0 chalk@5.3.0
+ * @with hono@4.1.0 jose@5.2.0
  * @node 22.12.0
  */
-import chalk from 'chalk';
-import &#123; Octokit &#125; from 'octokit';
+import &#123; Hono &#125; from 'hono';
+import &#123; jwtVerify &#125; from 'jose';
 
-const octokit = new Octokit();
-console.log(chalk.cyan('Fetching repo metadata...'));
-const &#123; data &#125; = await octokit.rest.repos.get(&#123;
-  owner: 'kreisler',
-  repo: 'ntsx'
-&#125;);
-console.log(`Repo Stars: $&#123;data.stargazers_count&#125;`);</pre>
+const app = new Hono();
+app.get('/health', (c) => c.json(&#123; status: 'ok' &#125;));
+console.log('Hono server initialized with JWT auth.');</pre>
         </div>
 
         <!-- Console Stream Output -->
@@ -94,13 +96,13 @@ console.log(`Repo Stars: $&#123;data.stargazers_count&#125;`);</pre>
 
             <div id="sandbox-logs" class="pt-3 space-y-2 text-[11px] leading-relaxed">
               <div class="text-slate-500">$ ntsx run script.ts</div>
-              <div class="text-slate-600">Click "Execute Script" to run simulation...</div>
+              <div class="text-slate-600">Click "Execute Rust CLI" to run simulation...</div>
             </div>
           </div>
 
           <!-- Sandbox Footer Stats -->
           <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500">
-            <span>Execution Kernel: Rust v1.2</span>
+            <span>Execution Kernel: Rust Binary v1.2</span>
             <span id="sandbox-time" class="text-cyan-400">0.00ms</span>
           </div>
         </div>
@@ -112,38 +114,48 @@ console.log(`Repo Stars: $&#123;data.stargazers_count&#125;`);</pre>
 </section>
 
 <script>
+  import gsap from 'gsap';
+
   const presets: Record<string, { code: string; logs: string[]; executionTime: string }> = {
-    github: {
-      code: `/**\n * @ntsx\n * @with octokit@3.1.0 chalk@5.3.0\n * @node 22.12.0\n */\nimport chalk from 'chalk';\nimport { Octokit } from 'octokit';\n\nconst octokit = new Octokit();\nconsole.log(chalk.cyan('Fetching repo metadata...'));\nconst { data } = await octokit.rest.repos.get({\n  owner: 'kreisler',\n  repo: 'ntsx'\n});\nconsole.log(\`Repo Stars: \${data.stargazers_count}\`);`,
+    hono: {
+      code: `/**\n * @ntsx\n * @with hono@4.1.0 jose@5.2.0\n * @node 22.12.0\n */\nimport { Hono } from 'hono';\nimport { jwtVerify } from 'jose';\n\nconst app = new Hono();\napp.get('/health', (c) => c.json({ status: 'ok' }));\nconsole.log('Hono server initialized with JWT auth.');`,
       logs: [
-        '[ntsx] Parsing JSDoc annotations from script.ts...',
-        '[ntsx] Cache lookup: octokit@3.1.0, chalk@5.3.0 -> MATCH (hash: 8f92a1)',
-        '[ntsx] Linking ~/.cache/ntsx/npm/8f92a1 -> ./node_modules',
-        'Fetching repo metadata...',
-        'Repo Stars: 1,420',
-        '✔ Execution finished successfully.'
-      ],
-      executionTime: '0.41ms'
-    },
-    aws: {
-      code: `/**\n * @ntsx\n * @with @aws-sdk/client-s3@3.500.0\n * @node 20.18.0\n */\nimport { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';\n\nconst client = new S3Client({ region: 'us-east-1' });\nconst command = new ListBucketsCommand({});\nconsole.log('Listing AWS S3 Buckets...');`,
-      logs: [
-        '[ntsx] Parsing JSDoc annotations from script.ts...',
-        '[ntsx] Pinning Node.js version 20.18.0 (cached: ~/.cache/ntsx/node/v20.18.0)',
-        '[ntsx] Symlink dependency tree prepared.',
-        'Listing AWS S3 Buckets...',
-        'Found 4 buckets in us-east-1.',
+        '[ntsx-rust] Parsing JSDoc annotations from script.ts...',
+        '[ntsx-rust] Cache lookup: hono@4.1.0, jose@5.2.0 -> MATCH (hash: f829a2)',
+        '[ntsx-rust] Symlinking ~/.cache/ntsx/npm/f829a2 -> ./node_modules',
+        'Hono server initialized with JWT auth.',
         '✔ Execution finished successfully.'
       ],
       executionTime: '0.38ms'
     },
-    tool: {
-      code: `// ntsx tool executes ephemeral binaries directly\n$ ntsx tool opencode-ai --version\n\n// ntsx tool inspects package bin fields automatically\n$ ntsx tool cowsay "ntsx makes CLI scripting instant!"`,
+    aws: {
+      code: `/**\n * @ntsx\n * @with @aws-sdk/client-s3@3.500.0\n * @node 20.18.0\n */\nimport { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';\n\nconst client = new S3Client({ region: 'us-east-1' });\nconsole.log('AWS S3 Client connected on pinned Node v20.18.0');`,
       logs: [
-        '[ntsx tool] Inspecting package.json "bin" field for cowsay...',
-        '[ntsx tool] Executing binary target: cowsay',
+        '[ntsx-rust] Parsing JSDoc annotations from script.ts...',
+        '[ntsx-rust] Pinning Node.js version 20.18.0 (cached: ~/.cache/ntsx/node/v20.18.0)',
+        '[ntsx-rust] Symlink dependency tree prepared.',
+        'AWS S3 Client connected on pinned Node v20.18.0',
+        '✔ Execution finished successfully.'
+      ],
+      executionTime: '0.42ms'
+    },
+    lock: {
+      code: `$ ntsx lock script.ts\n\n// Generates script.ts.lock file with exact immutable package versions and SHA hashes\n{\n  "version": 1,\n  "packages": [\n    "hono@4.1.0",\n    "jose@5.2.0"\n  ],\n  "hash": "8a2f91c980b3d"\n}`,
+      logs: [
+        '[ntsx-rust] Inspecting dependencies for script.ts...',
+        '[ntsx-rust] Lockfile script.ts.lock generated successfully.',
+        '[ntsx-rust] Verified SHA-256 integrity hash: 8a2f91c980b3d',
+        '✔ Script lockfile updated and locked.'
+      ],
+      executionTime: '0.18ms'
+    },
+    tool: {
+      code: `// ntsx tool executes ephemeral CLI tools directly without local node_modules\n$ ntsx tool cowsay "ntsx Rust CLI is instant!"\n\n$ ntsx tool opencode-ai --version`,
+      logs: [
+        '[ntsx-rust] Inspecting package.json "bin" field for cowsay...',
+        '[ntsx-rust] Executing binary target: cowsay',
         ' ________________________________________',
-        '< ntsx makes CLI scripting instant! >',
+        '< ntsx Rust CLI is instant! >',
         ' ----------------------------------------',
         '        \\   ^__^',
         '         \\  (oo)\\_______',
@@ -163,7 +175,7 @@ console.log(`Repo Stars: $&#123;data.stargazers_count&#125;`);</pre>
   const runBtn = document.getElementById('run-sandbox-btn');
   const presetBtns = document.querySelectorAll('.sandbox-preset-btn');
 
-  let activePreset = 'github';
+  let activePreset = 'hono';
 
   presetBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -174,15 +186,16 @@ console.log(`Repo Stars: $&#123;data.stargazers_count&#125;`);</pre>
       btn.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border-cyan-500/40');
       btn.classList.remove('text-slate-400', 'border-transparent');
 
-      const presetKey = btn.getAttribute('data-preset') || 'github';
+      const presetKey = btn.getAttribute('data-preset') || 'hono';
       activePreset = presetKey;
       if (codeView) {
         codeView.textContent = presets[presetKey].code;
+        gsap.fromTo(codeView, { opacity: 0, y: 5 }, { opacity: 1, y: 0, duration: 0.3 });
       }
       if (logsView) {
         logsView.innerHTML = `
           <div class="text-slate-500">$ ntsx run script.ts</div>
-          <div class="text-slate-600">Click "Execute Script" to run simulation...</div>
+          <div class="text-slate-600">Click "Execute Rust CLI" to run simulation...</div>
         `;
       }
       if (timeView) timeView.textContent = '0.00ms';
@@ -193,7 +206,7 @@ console.log(`Repo Stars: $&#123;data.stargazers_count&#125;`);</pre>
     runBtn.addEventListener('click', () => {
       if (!logsView || !statusView || !timeView) return;
 
-      statusView.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> Executing...`;
+      statusView.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> Executing Rust...`;
       logsView.innerHTML = `<div class="text-slate-500">$ ntsx run script.ts</div>`;
 
       const data = presets[activePreset];
@@ -202,7 +215,7 @@ console.log(`Repo Stars: $&#123;data.stargazers_count&#125;`);</pre>
       data.logs.forEach((log, idx) => {
         setTimeout(() => {
           const line = document.createElement('div');
-          if (log.startsWith('[ntsx]')) {
+          if (log.startsWith('[ntsx-rust]')) {
             line.className = 'text-cyan-400 font-semibold';
           } else if (log.startsWith('✔')) {
             line.className = 'text-emerald-400 font-bold';
@@ -211,6 +224,8 @@ console.log(`Repo Stars: $&#123;data.stargazers_count&#125;`);</pre>
           }
           line.textContent = log;
           logsView.appendChild(line);
+
+          gsap.fromTo(line, { opacity: 0, x: -5 }, { opacity: 1, x: 0, duration: 0.2 });
 
           if (idx === data.logs.length - 1) {
             statusView.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Success`;
