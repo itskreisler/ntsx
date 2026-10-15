@@ -79,6 +79,12 @@ Run a TypeScript script requiring packages you haven't installed in your project
 ntsx run --with axios --with jsdom examples/scrape.ts https://example.com
 ```
 
+> [!TIP]
+> When passing option flags to your script or inline code (e.g. `--fecha` or `-h`), use the `--` separator so the flags are passed directly to your target script rather than intercepted by `ntsx`:
+> ```bash
+> ntsx run --with axios diario.ts -- --fecha hoy
+> ```
+
 ### 2. Execute inline code with `-e`
 
 Evaluate TypeScript or JavaScript directly in your terminal:
@@ -87,11 +93,11 @@ Evaluate TypeScript or JavaScript directly in your terminal:
 ntsx run --with qrcode -e "import QR from 'qrcode'; QR.toString('https://npmjs.com', { type: 'terminal', small: true }).then(console.log)"
 ```
 
-> [!TIP]
-> When passing command-line arguments to inline code evaluated with `-e`, use the `--` separator so flags are forwarded to your script rather than `ntsx`:
-> ```bash
-> ntsx run --with argv2object -e "import a from 'argv2object'; console.log(a(true))" -- --env production --debug
-> ```
+Forward arguments and flags to inline code:
+
+```bash
+ntsx run --with argv2object -e "import a from 'argv2object'; console.log(a(true))" -- -h --name=Kreisler --is-admin
+```
 
 ### 3. Pin Node.js version
 
@@ -126,7 +132,7 @@ ntsx lock --with axios@1.7.9 script.ts
 Runs a script or inline code snippet with ephemeral dependencies.
 
 ```
-ntsx run [options] [script] [scriptArgs...]
+ntsx run [options] [script] [-- scriptArgs...]
 ```
 
 | Flag | Description |
@@ -140,7 +146,7 @@ ntsx run [options] [script] [scriptArgs...]
 | `-q, --quiet` | Suppress `npm install` stdout output |
 | `-d, --debug` | Display detailed execution trace and cache internal steps |
 | `--node <version>` | Pin Node.js version |
-| `-- <args...>` | Forward arguments directly to the target script |
+| `-- <args...>` | Forward flags and arguments directly to the target script |
 
 ### `ntsx tool`
 
