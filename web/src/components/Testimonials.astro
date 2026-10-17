@@ -1,0 +1,64 @@
+---
+import { ShieldCheck, Cpu, Layers, Zap, Lock, Terminal } from 'lucide-astro';
+
+const guarantees = [
+  {
+    icon: Layers,
+    title: "Zero Global Pollution",
+    description: "Dependencies are isolated in deterministic `~/.cache/ntsx/` directory trees and exposed to your script via scoped symlinks, preserving clean node_modules."
+  },
+  {
+    icon: Cpu,
+    title: "Native Rust Kernel",
+    description: "Native compiled Rust engine parses JSDoc metadata, downloads Node versions on demand, and provisions isolated symlink caches in sub-milliseconds."
+  },
+  {
+    icon: Lock,
+    title: "Deterministic Lockfiles",
+    description: "Generate `<script>.lock` lockfiles alongside your scripts with `ntsx lock` to lock exact package versions and short SHA hashes across CI runner matrixes."
+  }
+];
+---
+
+<section id="architecture" class="py-24 relative bg-slate-950/60 border-t border-slate-800">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Section Header -->
+    <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-xs uppercase tracking-widest font-semibold">
+        Technical Architecture
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-sans">
+        Engineered for Speed & Reliability
+      </h2>
+      <p class="text-slate-400 text-sm font-sans">
+        Designed from the ground up to solve script dependency management without polluting local projects or slowing down CI runs.
+      </p>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="grid md:grid-cols-3 gap-8">
+      {guarantees.map((g) => {
+        const Icon = g.icon;
+        return (
+          <div class="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-cyan-500/40 transition-all duration-300 backdrop-blur-xl flex flex-col justify-between space-y-6">
+            <div class="space-y-4">
+              <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                <Icon class="w-6 h-6" />
+              </div>
+              <h3 class="text-xl font-bold text-white font-mono">{g.title}</h3>
+              <p class="text-slate-400 text-sm leading-relaxed font-sans">
+                {g.description}
+              </p>
+            </div>
+            <div class="pt-4 border-t border-slate-800/80 flex items-center gap-2 text-xs font-mono text-cyan-400">
+              <ShieldCheck class="w-4 h-4" />
+              <span>Verified System Spec</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+  </div>
+</section>

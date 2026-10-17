@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ntsx.dev/sitemap-index.xml

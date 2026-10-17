@@ -1,0 +1,85 @@
+---
+import { ChevronDown, HelpCircle } from 'lucide-astro';
+
+const faqs = [
+  {
+    q: "How does ntsx handle dependencies without creating node_modules?",
+    a: "ntsx parses inline `@with` declarations in your script's JSDoc block. Packages are fetched once into a global user cache directory (~/.cache/ntsx/npm/) and symlinked dynamically into a clean ephemeral execution directory for each run."
+  },
+  {
+    q: "How does @node version pinning work under the hood?",
+    a: "When `@node <version>` is declared in a script, ntsx checks `~/.cache/ntsx/node/` for that specific release binary. If absent, ntsx downloads the platform-matched Node.js binary archive, extracts it, and prepends its directory to PATH before running your script."
+  },
+  {
+    q: "What is the difference between ntsx and npx or tsx?",
+    a: "Standard `tsx` requires local or global node_modules installations and cannot automatically fetch missing packages on the fly. `npx` downloads and executes single packages but does not parse script-level JSDoc requirements or provide sub-millisecond symlink caching."
+  },
+  {
+    q: "Does ntsx support lockfiles for reproducible builds?",
+    a: "Yes! Running `ntsx lock <script.ts>` generates a `<script.ts>.lock` file containing exact immutable package integrity hashes, ensuring 100% deterministic executions across local machines and CI runners."
+  },
+  {
+    q: "Where is ntsx compiled and supported?",
+    a: "ntsx is written in TypeScript for NPM (`@kreisler/ntsx`) and natively cross-compiled in Rust (`ntsx-rust`) for Linux x86_64, Linux aarch64, Windows x86_64, and Windows aarch64 targets."
+  }
+];
+---
+
+<section id="faq" class="py-24 relative bg-slate-950/80">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Section Title -->
+    <div class="text-center space-y-3 mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-xs uppercase tracking-widest font-semibold">
+        Got Questions?
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+        Frequently Asked Questions
+      </h2>
+    </div>
+
+    <!-- FAQ Accordion List -->
+    <div class="space-y-4">
+      {faqs.map((faq, idx) => (
+        <div class="faq-item rounded-2xl bg-slate-900/60 border border-slate-800 overflow-hidden transition-all duration-300">
+          <button
+            class="faq-trigger w-full p-6 text-left flex items-center justify-between text-white font-semibold text-base sm:text-lg hover:text-cyan-300 transition-colors"
+            data-idx={idx}
+          >
+            <span>{faq.q}</span>
+            <ChevronDown class="faq-icon w-5 h-5 text-cyan-400 transition-transform duration-300 shrink-0" />
+          </button>
+          <div class="faq-content hidden px-6 pb-6 text-slate-400 text-sm sm:text-base leading-relaxed border-t border-slate-800/50 pt-4">
+            {faq.a}
+          </div>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>
+
+<script>
+  const triggers = document.querySelectorAll('.faq-trigger');
+
+  triggers.forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const parent = trigger.parentElement;
+      const content = parent?.querySelector('.faq-content');
+      const icon = trigger.querySelector('.faq-icon');
+
+      if (content && icon) {
+        const isOpen = !content.classList.contains('hidden');
+
+        // Close all
+        document.querySelectorAll('.faq-content').forEach(c => c.classList.add('hidden'));
+        document.querySelectorAll('.faq-icon').forEach(i => i.classList.remove('rotate-180'));
+
+        if (!isOpen) {
+          content.classList.remove('hidden');
+          icon.classList.add('rotate-180');
+        }
+      }
+    });
+  });
+</script>

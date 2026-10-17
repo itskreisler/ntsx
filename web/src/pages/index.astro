@@ -1,0 +1,33 @@
+---
+import SEO from '../components/SEO.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import BentoGrid from '../components/BentoGrid.astro';
+import PromoVideo from '../components/PromoVideo.astro';
+import AISandbox from '../components/AISandbox.astro';
+import PricingCalculator from '../components/PricingCalculator.astro';
+import Testimonials from '../components/Testimonials.astro';
+import FAQ from '../components/FAQ.astro';
+import ContactModal from '../components/ContactModal.astro';
+import Footer from '../components/Footer.astro';
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="ntsx — Ultra-Fast Ephemeral TypeScript & Node Script Engine">
+  <SEO
+    title="ntsx — Ephemeral TypeScript & Node Script Engine"
+    description="Run TypeScript and JavaScript scripts with inline JSDoc dependencies, instant symlink package caching, automatic Node version pinning, and a high-performance Rust kernel."
+  />
+  <Header />
+  <main class="relative z-10">
+    <Hero />
+    <BentoGrid />
+    <PromoVideo />
+    <AISandbox />
+    <PricingCalculator />
+    <Testimonials />
+    <FAQ />
+  </main>
+  <Footer />
+  <ContactModal />
+</Layout>

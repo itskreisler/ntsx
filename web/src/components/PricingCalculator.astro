@@ -1,0 +1,133 @@
+---
+import { Calculator, Clock, DollarSign, Server, Zap } from 'lucide-astro';
+---
+
+<section id="calculator" class="py-24 relative">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-xs uppercase tracking-widest font-semibold">
+        CI/CD Build Pipeline ROI
+      </div>
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        Calculate Your CI Pipeline Savings
+      </h2>
+      <p class="text-slate-400 text-sm sm:text-base">
+        Eliminating <code class="text-cyan-300 font-mono">npm install</code> step overhead in CI workflows drastically reduces build runner minutes and cloud compute billing.
+      </p>
+    </div>
+
+    <!-- Calculator Card -->
+    <div class="max-w-4xl mx-auto p-8 rounded-3xl bg-slate-900/80 border border-cyan-500/30 backdrop-blur-2xl shadow-[0_0_50px_rgba(6,182,212,0.1)]">
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+
+        <!-- Sliders -->
+        <div class="space-y-8">
+
+          <!-- Slider 1: Monthly CI Job Runs -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <label for="runs-range" class="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
+                Monthly Script Executions
+              </label>
+              <span id="runs-val" class="text-lg font-mono font-extrabold text-cyan-400">25,000</span>
+            </div>
+            <input
+              id="runs-range"
+              type="range"
+              min="1000"
+              max="100000"
+              step="1000"
+              value="25000"
+              class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+            />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>1k runs</span>
+              <span>100k runs</span>
+            </div>
+          </div>
+
+          <!-- Slider 2: Average npm install time saved -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <label for="time-range" class="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
+                npm install duration saved / run
+              </label>
+              <span id="time-val" class="text-lg font-mono font-extrabold text-cyan-400">18 sec</span>
+            </div>
+            <input
+              id="time-range"
+              type="range"
+              min="5"
+              max="60"
+              step="1"
+              value="18"
+              class="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+            />
+            <div class="flex justify-between text-[10px] font-mono text-slate-500">
+              <span>5s</span>
+              <span>60s</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Output Metric Callout -->
+        <div class="p-6 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-6">
+          <div class="space-y-4">
+            <div class="text-xs font-mono text-slate-400 uppercase tracking-wider">Estimated Monthly Compute Savings</div>
+            <div id="cost-saved" class="text-4xl sm:text-5xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+              $1,800 / mo
+            </div>
+            <div id="time-saved" class="text-xs font-mono text-slate-400">
+              Reclaimed developer time: <span class="text-cyan-300 font-bold">125 hours / mo</span>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/20 text-[11px] font-mono text-cyan-300 space-y-1">
+            <div class="flex items-center gap-1.5 text-cyan-400 font-bold">
+              <Zap class="w-3.5 h-3.5" />
+              <span>Zero Maintenance Infrastructure</span>
+            </div>
+            <p class="text-slate-400">ntsx works seamlessly in GitHub Actions, GitLab CI, and AWS CodeBuild without installing additional daemon runners.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const runsRange = document.getElementById('runs-range') as HTMLInputElement;
+  const timeRange = document.getElementById('time-range') as HTMLInputElement;
+  const runsVal = document.getElementById('runs-val');
+  const timeVal = document.getElementById('time-val');
+  const costSaved = document.getElementById('cost-saved');
+  const timeSaved = document.getElementById('time-saved');
+
+  function calculateROI() {
+    if (!runsRange || !timeRange || !runsVal || !timeVal || !costSaved || !timeSaved) return;
+
+    const runs = parseInt(runsRange.value, 10);
+    const secs = parseInt(timeRange.value, 10);
+
+    runsVal.textContent = runs.toLocaleString();
+    timeVal.textContent = `${secs} sec`;
+
+    // Calculation logic
+    const totalSecsSaved = runs * secs;
+    const hoursSaved = Math.round(totalSecsSaved / 3600);
+    // GitHub Actions Linux runner average rate: $0.008 / min = $0.48 / hr + dev time value
+    const computeCostSaved = Math.round(hoursSaved * 14.4);
+
+    costSaved.textContent = `$${computeCostSaved.toLocaleString()} / mo`;
+    timeSaved.innerHTML = `Reclaimed CI time: <span class="text-cyan-300 font-bold">${hoursSaved.toLocaleString()} hours / mo</span>`;
+  }
+
+  if (runsRange && timeRange) {
+    runsRange.addEventListener('input', calculateROI);
+    timeRange.addEventListener('input', calculateROI);
+  }
+</script>

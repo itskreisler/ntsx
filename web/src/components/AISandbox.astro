@@ -1,0 +1,238 @@
+---
+import { Play, Terminal, CheckCircle2, RefreshCw, Cpu } from 'lucide-astro';
+---
+
+<section id="sandbox" class="py-24 relative overflow-hidden bg-slate-950/80 border-y border-slate-800">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Section Header -->
+    <div class="text-center max-w-2xl mx-auto mb-16 space-y-3">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-mono text-xs uppercase tracking-widest font-semibold">
+        Interactive CLI Playground
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+        Simulate <span class="text-cyan-400">ntsx Rust Engine</span> Live
+      </h2>
+      <p class="text-slate-400 text-sm sm:text-base">
+        Select a real-world script scenario to observe JSDoc dependency resolution, symlink creation, Node version downloads, and execution logs in real time.
+      </p>
+    </div>
+
+    <!-- Playground Window -->
+    <div class="max-w-4xl mx-auto rounded-2xl bg-slate-900 border border-slate-700/80 shadow-2xl overflow-hidden backdrop-blur-2xl">
+
+      <!-- Top Toolbar -->
+      <div class="flex flex-wrap items-center justify-between p-4 bg-slate-950 border-b border-slate-800 gap-3">
+
+        <!-- Preset Buttons -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            data-preset="hono"
+            class="sandbox-preset-btn active px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+          >
+            Hono + Jose JWT
+          </button>
+          <button
+            data-preset="aws"
+            class="sandbox-preset-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all border border-transparent"
+          >
+            @aws-sdk/s3
+          </button>
+          <button
+            data-preset="lock"
+            class="sandbox-preset-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all border border-transparent"
+          >
+            ntsx lock
+          </button>
+          <button
+            data-preset="tool"
+            class="sandbox-preset-btn px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all border border-transparent"
+          >
+            ntsx tool
+          </button>
+        </div>
+
+        <!-- Run Trigger -->
+        <button
+          id="run-sandbox-btn"
+          class="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-mono text-xs font-bold shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-105 transition-all duration-200 active:scale-95"
+        >
+          <Play class="w-3.5 h-3.5 fill-current" />
+          <span>Execute Rust CLI</span>
+        </button>
+      </div>
+
+      <!-- Editor & Output Grid -->
+      <div class="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800 font-mono text-xs">
+
+        <!-- Code Window -->
+        <div class="p-5 bg-slate-900/90 text-slate-300 space-y-2 overflow-x-auto min-h-[320px]">
+          <div class="text-slate-500 pb-2 border-b border-slate-800 flex items-center justify-between">
+            <span>INPUT: script.ts</span>
+            <span class="text-[10px] text-cyan-400">JSDoc Parsed</span>
+          </div>
+          <pre id="sandbox-code-view" class="text-slate-300 leading-relaxed font-mono">/**
+ * @ntsx
+ * @with hono@4.1.0 jose@5.2.0
+ * @node 22.12.0
+ */
+import &#123; Hono &#125; from 'hono';
+import &#123; jwtVerify &#125; from 'jose';
+
+const app = new Hono();
+app.get('/health', (c) => c.json(&#123; status: 'ok' &#125;));
+console.log('Hono server initialized with JWT auth.');</pre>
+        </div>
+
+        <!-- Console Stream Output -->
+        <div class="p-5 bg-slate-950 text-slate-300 flex flex-col justify-between min-h-[320px]">
+          <div>
+            <div class="text-slate-500 pb-2 border-b border-slate-800 flex items-center justify-between">
+              <span>OUTPUT STREAM</span>
+              <span id="sandbox-status" class="text-[10px] text-emerald-400 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Idle
+              </span>
+            </div>
+
+            <div id="sandbox-logs" class="pt-3 space-y-2 text-[11px] leading-relaxed">
+              <div class="text-slate-500">$ ntsx run script.ts</div>
+              <div class="text-slate-600">Click "Execute Rust CLI" to run simulation...</div>
+            </div>
+          </div>
+
+          <!-- Sandbox Footer Stats -->
+          <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500">
+            <span>Execution Kernel: Rust Binary v1.2</span>
+            <span id="sandbox-time" class="text-cyan-400">0.00ms</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+  import gsap from 'gsap';
+
+  const presets: Record<string, { code: string; logs: string[]; executionTime: string }> = {
+    hono: {
+      code: `/**\n * @ntsx\n * @with hono@4.1.0 jose@5.2.0\n * @node 22.12.0\n */\nimport { Hono } from 'hono';\nimport { jwtVerify } from 'jose';\n\nconst app = new Hono();\napp.get('/health', (c) => c.json({ status: 'ok' }));\nconsole.log('Hono server initialized with JWT auth.');`,
+      logs: [
+        '[ntsx-rust] Parsing JSDoc annotations from script.ts...',
+        '[ntsx-rust] Cache lookup: hono@4.1.0, jose@5.2.0 -> MATCH (hash: f829a2)',
+        '[ntsx-rust] Symlinking ~/.cache/ntsx/npm/f829a2 -> ./node_modules',
+        'Hono server initialized with JWT auth.',
+        '✔ Execution finished successfully.'
+      ],
+      executionTime: '0.38ms'
+    },
+    aws: {
+      code: `/**\n * @ntsx\n * @with @aws-sdk/client-s3@3.500.0\n * @node 20.18.0\n */\nimport { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';\n\nconst client = new S3Client({ region: 'us-east-1' });\nconsole.log('AWS S3 Client connected on pinned Node v20.18.0');`,
+      logs: [
+        '[ntsx-rust] Parsing JSDoc annotations from script.ts...',
+        '[ntsx-rust] Pinning Node.js version 20.18.0 (cached: ~/.cache/ntsx/node/v20.18.0)',
+        '[ntsx-rust] Symlink dependency tree prepared.',
+        'AWS S3 Client connected on pinned Node v20.18.0',
+        '✔ Execution finished successfully.'
+      ],
+      executionTime: '0.42ms'
+    },
+    lock: {
+      code: `$ ntsx lock script.ts\n\n// Generates script.ts.lock file with exact immutable package versions and SHA hashes\n{\n  "version": 1,\n  "packages": [\n    "hono@4.1.0",\n    "jose@5.2.0"\n  ],\n  "hash": "8a2f91c980b3d"\n}`,
+      logs: [
+        '[ntsx-rust] Inspecting dependencies for script.ts...',
+        '[ntsx-rust] Lockfile script.ts.lock generated successfully.',
+        '[ntsx-rust] Verified SHA-256 integrity hash: 8a2f91c980b3d',
+        '✔ Script lockfile updated and locked.'
+      ],
+      executionTime: '0.18ms'
+    },
+    tool: {
+      code: `// ntsx tool executes ephemeral CLI tools directly without local node_modules\n$ ntsx tool cowsay "ntsx Rust CLI is instant!"\n\n$ ntsx tool opencode-ai --version`,
+      logs: [
+        '[ntsx-rust] Inspecting package.json "bin" field for cowsay...',
+        '[ntsx-rust] Executing binary target: cowsay',
+        ' ________________________________________',
+        '< ntsx Rust CLI is instant! >',
+        ' ----------------------------------------',
+        '        \\   ^__^',
+        '         \\  (oo)\\_______',
+        '            (__)\\       )/\\',
+        '                ||----w |',
+        '                ||     ||',
+        '✔ Ephemeral tool executed without npm install.'
+      ],
+      executionTime: '0.29ms'
+    }
+  };
+
+  const codeView = document.getElementById('sandbox-code-view');
+  const logsView = document.getElementById('sandbox-logs');
+  const statusView = document.getElementById('sandbox-status');
+  const timeView = document.getElementById('sandbox-time');
+  const runBtn = document.getElementById('run-sandbox-btn');
+  const presetBtns = document.querySelectorAll('.sandbox-preset-btn');
+
+  let activePreset = 'hono';
+
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      presetBtns.forEach(b => {
+        b.classList.remove('bg-cyan-500/20', 'text-cyan-300', 'border-cyan-500/40');
+        b.classList.add('text-slate-400', 'border-transparent');
+      });
+      btn.classList.add('bg-cyan-500/20', 'text-cyan-300', 'border-cyan-500/40');
+      btn.classList.remove('text-slate-400', 'border-transparent');
+
+      const presetKey = btn.getAttribute('data-preset') || 'hono';
+      activePreset = presetKey;
+      if (codeView) {
+        codeView.textContent = presets[presetKey].code;
+        gsap.fromTo(codeView, { opacity: 0, y: 5 }, { opacity: 1, y: 0, duration: 0.3 });
+      }
+      if (logsView) {
+        logsView.innerHTML = `
+          <div class="text-slate-500">$ ntsx run script.ts</div>
+          <div class="text-slate-600">Click "Execute Rust CLI" to run simulation...</div>
+        `;
+      }
+      if (timeView) timeView.textContent = '0.00ms';
+    });
+  });
+
+  if (runBtn) {
+    runBtn.addEventListener('click', () => {
+      if (!logsView || !statusView || !timeView) return;
+
+      statusView.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> Executing Rust...`;
+      logsView.innerHTML = `<div class="text-slate-500">$ ntsx run script.ts</div>`;
+
+      const data = presets[activePreset];
+      let delay = 150;
+
+      data.logs.forEach((log, idx) => {
+        setTimeout(() => {
+          const line = document.createElement('div');
+          if (log.startsWith('[ntsx-rust]')) {
+            line.className = 'text-cyan-400 font-semibold';
+          } else if (log.startsWith('✔')) {
+            line.className = 'text-emerald-400 font-bold';
+          } else {
+            line.className = 'text-slate-300';
+          }
+          line.textContent = log;
+          logsView.appendChild(line);
+
+          gsap.fromTo(line, { opacity: 0, x: -5 }, { opacity: 1, x: 0, duration: 0.2 });
+
+          if (idx === data.logs.length - 1) {
+            statusView.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Success`;
+            timeView.textContent = data.executionTime;
+          }
+        }, delay * (idx + 1));
+      });
+    });
+  }
+</script>

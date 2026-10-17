@@ -1,0 +1,66 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  canonicalURL?: string;
+  type?: string;
+}
+
+const {
+  title = "ntsx — Native Rust Ephemeral TypeScript Script Engine",
+  description = "High-performance compiled Rust kernel for executing TypeScript and Node scripts with JSDoc @ntsx dependency resolution, instant symlink package caching, and automatic Node version pinning.",
+  image = "/og-image.jpg",
+  canonicalURL = Astro.url.href,
+  type = "website"
+} = Astro.props;
+
+const siteName = "ntsx Engine";
+
+// Structured Data JSON-LD
+const schemaOrgJSON = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ntsx",
+    "operatingSystem": "Linux x86_64/aarch64, Windows x86_64/aarch64",
+    "applicationCategory": "DeveloperApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": description
+  }
+]);
+---
+
+<!-- Global Metadata -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<meta name="generator" content={Astro.generator} />
+
+<!-- Primary Meta Tags -->
+<title>{title}</title>
+<meta name="title" content={title} />
+<meta name="description" content={description} />
+<meta name="keywords" content="ntsx, Rust, TypeScript, Node.js, CLI, Script Engine, Ephemeral Dependencies, JSDoc, Symlink Cache" />
+<meta name="robots" content="index, follow" />
+<link rel="canonical" href={canonicalURL} />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content={type} />
+<meta property="og:url" content={canonicalURL} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:site_name" content={siteName} />
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content={canonicalURL} />
+<meta property="twitter:title" content={title} />
+<meta property="twitter:description" content={description} />
+
+<!-- Structured Data -->
+<script type="application/ld+json" set:html={schemaOrgJSON} />
