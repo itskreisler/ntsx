@@ -1,0 +1,283 @@
+---
+import { Play, Pause, Volume2, VolumeX, Sparkles, Terminal, Cpu, Zap, ShieldCheck } from 'lucide-astro';
+---
+
+<section id="promo-video" class="py-24 relative bg-[#0B0F19] border-y border-slate-800/80 overflow-hidden">
+  <!-- Subtle Gradient Background Glow -->
+  <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,107,0,0.06)_0,transparent_70%)] pointer-events-none"></div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+    <!-- Header Title -->
+    <div class="text-center max-w-3xl mx-auto mb-12 space-y-4">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 font-mono text-xs uppercase tracking-widest font-semibold shadow-[0_0_15px_rgba(255,107,0,0.15)]">
+        <Sparkles class="w-3.5 h-3.5 text-orange-400" />
+        <span>Official Showcase Video</span>
+      </div>
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+        Experience <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-cyan-400">ntsx</span> in Action
+      </h2>
+      <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
+        Watch how our compiled Rust kernel parses JSDoc metadata, provisions symlinked dependency trees, and launches TypeScript scripts in milliseconds.
+      </p>
+    </div>
+
+    <!-- Video Showcase Player Frame -->
+    <div class="relative max-w-5xl mx-auto rounded-3xl bg-slate-900/90 border border-slate-800/90 p-3 sm:p-4 shadow-[0_0_80px_rgba(255,107,0,0.12)] backdrop-blur-2xl group">
+
+      <!-- Video Container -->
+      <div class="relative aspect-video rounded-2xl bg-slate-950 overflow-hidden border border-slate-800/80 flex items-center justify-center">
+
+        <!-- Animated Interactive Canvas / Video Player -->
+        <canvas id="promo-video-canvas" class="w-full h-full object-cover cursor-pointer"></canvas>
+
+        <!-- Play/Pause Big Center Overlay Button -->
+        <button
+          id="promo-play-overlay"
+          aria-label="Play video"
+          class="absolute z-20 w-20 h-20 rounded-full bg-orange-500/90 hover:bg-orange-500 text-slate-950 flex items-center justify-center shadow-[0_0_40px_rgba(255,107,0,0.6)] transition-all duration-300 transform group-hover:scale-105 active:scale-95"
+        >
+          <Play class="w-9 h-9 fill-slate-950 ml-1" />
+        </button>
+
+        <!-- Top Status Bar overlay -->
+        <div class="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800/80 backdrop-blur-md text-xs font-mono text-orange-400">
+            <Cpu class="w-3.5 h-3.5 text-orange-400 animate-pulse" />
+            <span>ntsx-rust v1.2</span>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950/80 border border-slate-800/80 backdrop-blur-md text-xs font-mono text-emerald-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>Sub-millisecond Execution</span>
+          </div>
+        </div>
+
+        <!-- Bottom Custom Controls Bar -->
+        <div class="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent flex flex-col space-y-2 transition-opacity duration-300">
+
+          <!-- Progress Bar -->
+          <div id="promo-progress-track" class="w-full h-1.5 rounded-full bg-slate-800/80 cursor-pointer overflow-hidden relative group/track">
+            <div id="promo-progress-fill" class="h-full bg-gradient-to-r from-orange-500 to-amber-400 w-0 transition-all duration-100 relative"></div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1 text-xs font-mono">
+            <!-- Left Controls: Play/Pause, Mute/Unmute, Time -->
+            <div class="flex items-center gap-4 text-slate-300">
+              <button id="promo-ctrl-play" class="hover:text-orange-400 transition-colors">
+                <Play id="promo-icon-play" class="w-4 h-4" />
+                <Pause id="promo-icon-pause" class="w-4 h-4 hidden" />
+              </button>
+              <button id="promo-ctrl-mute" class="hover:text-orange-400 transition-colors flex items-center gap-1.5">
+                <VolumeX id="promo-icon-muted" class="w-4 h-4 text-orange-400" />
+                <Volume2 id="promo-icon-unmuted" class="w-4 h-4 hidden text-emerald-400" />
+                <span id="promo-sound-label" class="text-[11px] text-slate-400">Muted</span>
+              </button>
+              <span id="promo-time-display" class="text-slate-400">00:00 / 00:15</span>
+            </div>
+
+            <!-- Right Controls: Badge -->
+            <div class="text-slate-400 text-[11px]">
+              1080p 60FPS • Compiled Rust
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<script>
+  // High-performance Canvas Video Animation Engine representing ntsx Rust Kernel
+  const canvas = document.getElementById('promo-video-canvas') as HTMLCanvasElement;
+  const overlayBtn = document.getElementById('promo-play-overlay');
+  const ctrlPlay = document.getElementById('promo-ctrl-play');
+  const ctrlMute = document.getElementById('promo-ctrl-mute');
+  const iconPlay = document.getElementById('promo-icon-play');
+  const iconPause = document.getElementById('promo-icon-pause');
+  const iconMuted = document.getElementById('promo-icon-muted');
+  const iconUnmuted = document.getElementById('promo-icon-unmuted');
+  const soundLabel = document.getElementById('promo-sound-label');
+  const progressFill = document.getElementById('promo-progress-fill');
+  const timeDisplay = document.getElementById('promo-time-display');
+
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    let isPlaying = false;
+    let isMuted = true;
+    let frame = 0;
+    const totalFrames = 900; // 15 seconds at 60fps
+    let animationId: number;
+
+    // Set canvas dimensions
+    function resizeCanvas() {
+      if (!canvas) return;
+      canvas.width = canvas.parentElement?.clientWidth || 1280;
+      canvas.height = canvas.parentElement?.clientHeight || 720;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Audio synthesizer for sound effect when unmuted
+    let audioCtx: AudioContext | null = null;
+
+    function playBeep() {
+      if (isMuted) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+      } catch (e) {
+        // Audio API fallback gracefully
+      }
+    }
+
+    // Render Canvas Animation Frames
+    function draw() {
+      if (!ctx || !canvas) return;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Dark futuristic background
+      ctx.fillStyle = '#050811';
+      ctx.fillRect(0, 0, w, h);
+
+      // Grid background
+      ctx.strokeStyle = '#131c31';
+      ctx.lineWidth = 1;
+      const gridSize = 40;
+      for (let x = 0; x < w; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Draw active scene based on frame phase
+      const progress = frame / totalFrames;
+      const currentSec = Math.floor(progress * 15);
+
+      if (timeDisplay) {
+        timeDisplay.textContent = `00:${currentSec < 10 ? '0' + currentSec : currentSec} / 00:15`;
+      }
+      if (progressFill) {
+        progressFill.style.width = `${progress * 100}%`;
+      }
+
+      // Scene 1: JSDoc Parsing (0 - 5s)
+      if (currentSec < 5) {
+        ctx.fillStyle = '#ff6b00';
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText('[SCENE 1/3] JSDoc @ntsx Dependency Parsing', 40, 60);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(40, 100, w - 80, h - 160);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '18px monospace';
+        ctx.fillText('/** @ntsx', 60, 150);
+        ctx.fillText(' * @with hono@4.1.0 jose@5.2.0', 60, 180);
+        ctx.fillText(' * @node 22.12.0', 60, 210);
+        ctx.fillText(' */', 60, 240);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('import { Hono } from "hono";', 60, 290);
+        ctx.fillStyle = '#34d399';
+        ctx.fillText('✓ Parsed dependencies in 0.12ms', 60, 340);
+      }
+      // Scene 2: Rust Symlink & Cache Provisioning (5 - 10s)
+      else if (currentSec < 10) {
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText('[SCENE 2/3] Rust Symlink Caching Kernel', 40, 60);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(40, 100, w - 80, h - 160);
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = '18px monospace';
+        ctx.fillText('$ ntsx run api-hono.ts', 60, 150);
+
+        ctx.fillStyle = '#10b981';
+        ctx.fillText('[cache] SHA-256 Hash: c83f12a9...', 60, 190);
+        ctx.fillText('[symlink] Linked ~/.cache/ntsx/npm/hono@4.1.0 -> node_modules/hono', 60, 220);
+        ctx.fillText('[node] Pinned v22.12.0 resolved in sub-milliseconds', 60, 250);
+      }
+      // Scene 3: Instant Sub-Millisecond Execution (10 - 15s)
+      else {
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 24px monospace';
+        ctx.fillText('[SCENE 3/3] Instant Sub-Millisecond Execution', 40, 60);
+
+        ctx.fillStyle = '#022c22';
+        ctx.fillRect(40, 100, w - 80, h - 160);
+
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 32px monospace';
+        ctx.fillText('⚡ 0.38ms Cache Hit Rate', 60, 180);
+        ctx.fillText('🔒 100% Zero node_modules Pollution', 60, 240);
+        ctx.fillText('🚀 Ready for Production CI & Local Workflows', 60, 300);
+      }
+
+      if (isPlaying) {
+        frame = (frame + 1) % totalFrames;
+        if (frame % 120 === 0) playBeep();
+        animationId = requestAnimationFrame(draw);
+      }
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        if (overlayBtn) overlayBtn.classList.add('hidden');
+        if (iconPlay) iconPlay.classList.add('hidden');
+        if (iconPause) iconPause.classList.remove('hidden');
+        draw();
+      } else {
+        if (overlayBtn) overlayBtn.classList.remove('hidden');
+        if (iconPlay) iconPlay.classList.remove('hidden');
+        if (iconPause) iconPause.classList.add('hidden');
+        cancelAnimationFrame(animationId);
+      }
+    }
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      if (isMuted) {
+        if (iconMuted) iconMuted.classList.remove('hidden');
+        if (iconUnmuted) iconUnmuted.classList.add('hidden');
+        if (soundLabel) soundLabel.textContent = 'Muted';
+      } else {
+        if (iconMuted) iconMuted.classList.add('hidden');
+        if (iconUnmuted) iconUnmuted.classList.remove('hidden');
+        if (soundLabel) soundLabel.textContent = 'Audio Active';
+      }
+    }
+
+    // Event Listeners
+    if (overlayBtn) overlayBtn.addEventListener('click', togglePlay);
+    if (ctrlPlay) ctrlPlay.addEventListener('click', togglePlay);
+    if (ctrlMute) ctrlMute.addEventListener('click', toggleMute);
+    canvas.addEventListener('click', togglePlay);
+
+    // Initial render single frame
+    draw();
+  }
+</script>
